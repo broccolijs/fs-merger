@@ -1,0 +1,21 @@
+{
+  "name": "fs-reader",
+  "version": "1.0.0",
+  "description": "Reads files from a real location",
+  "main": "index.js",
+  "author": "Sparshith NR",
+  "license": "MIT",
+  "scripts": {
+    "test": "mocha tests/unit-test.js"
+  },
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "fixturify": "^1.2.0",
+    "mocha": "^6.1.4"
+  },
+  "dependencies": {
+    "fs-extra": "^8.0.1",
+    "rimraf": "^2.6.3",
+    "walk-sync": "^1.1.3"
+  }
+}
