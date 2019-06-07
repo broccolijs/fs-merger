@@ -1,8 +1,11 @@
 "use strict";
 const expect = require("chai").expect;
-const fs = require('../index');
+const FSMerge = require('../index');
 const fixturify = require('fixturify');
 const rm = require('rimraf').sync;
+const FSTree = require('fs-tree-diff');
+const fsExtra = require('fs-extra');
+const walksync = require('walk-sync');
 
 describe('fs-reader', function () {
   before(function() {
@@ -25,7 +28,13 @@ describe('fs-reader', function () {
       },
       'test-3': {
         'd.txt': 'this is different file',
-        'b.txt': 'This is file which is same as test-1/test-1/b.txt'
+        'b.txt': 'This is file which is same as test-1/test-1/b.txt',
+        'test-sub-1': {
+          'sub-c.txt': 'this is inside test-sub-1',
+          'test-sub-sub-1': {
+            'sub-sub-c.txt': 'this is inside of test-sub-sub-1'
+          }
+        }
       }
     });
   });
@@ -33,20 +42,88 @@ describe('fs-reader', function () {
     rm('fixtures');
   });
 
-  it('Reads file from given location', async function() {
-    let content = await fs(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']).readFileSync('a.txt', 'utf-8');
-    expect(content).to.be.equal('hello');
-    content = await fs(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']).readFileSync('c.txt', 'utf-8');
-    expect(content).to.be.equal('this is new file');
-    content = await fs(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']).readFileSync('test-1/b.txt', 'utf-8');
-    expect(content).to.be.equal('b contains text');
+  describe('Reads file from given location', function() {
+    let fs = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
+    it('a.txt', function () {
+      let content = fs.readFileSync('a.txt', 'utf-8');
+      expect(content).to.be.equal('this is same other');
+    });
+    it('c.txt', function () {
+      let content = fs.readFileSync('c.txt', 'utf-8');
+      expect(content).to.be.equal('this is new file');
+    });
+    it('test-1/b.txt', function () {
+      let content = fs.readFileSync('c.txt', 'utf-8');
+      expect(content).to.be.equal('this is new file');
+    });
+    it('test-1/b.txt', function () {
+      let content = fs.readFileSync('test-1/b.txt', 'utf-8');
+      expect(content).to.be.equal('b contains text');
+    });
+    it('test-1/b.txt', function () {
+      let content = fs.readFileSync('test-sub-1/test-sub-sub-1/sub-sub-c.txt', 'utf-8');
+      expect(content).to.be.equal('this is inside of test-sub-sub-1');
+    });
   });
-  it('Reads contents of the folder from given location', async function() {
-    let content = await fs(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']).readDirSync('test-1');
-    expect(content).to.be.deep.equal(['b.txt']);
-    content = await fs(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']).readDirSync('test-sub-1');
-    expect(content).to.be.deep.equal(['sub-b.txt', 'test-sub-sub-1/', 'test-sub-sub-1/sub-sub-b.txt']);
-    content = await fs(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']).readDirSync('test-sub-1/test-sub-sub-1');
-    expect(content).to.be.deep.equal(['sub-sub-b.txt']);
+  describe('Reads contents of the folder from location', function() {
+    let fs = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
+    it('test-1', function() {
+      let content = fs.readDirSync('test-1');
+      expect(content).to.be.deep.equal(['b.txt']);
+    });
+    it('test-sub-1', function() {
+      let content = fs.readDirSync('test-sub-1');
+      expect(content).to.be.deep.equal([ 'sub-b.txt', 'test-sub-sub-1', 'sub-c.txt' ]);
+    });
+    it('test-sub-1/test-sub-sub-1', function() {
+      let content = fs.readDirSync('test-sub-1/test-sub-sub-1');
+      expect(content).to.be.deep.equal([ 'sub-sub-b.txt', 'sub-sub-c.txt' ]);
+    });
+    it('/', function() {
+      let content = fs.readDirSync('/');
+      expect(content).to.be.deep.equal([ 'a.txt', 'test-1', 'c.txt', 'test-sub-1', 'b.txt', 'd.txt']);
+    });
+  });
+  describe('Returns entries for', function() {
+    let fs = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
+    it('root path', function () {
+      let fsEntries = fs.entries();
+      let fileList = [];
+      let walkList = ['a.txt', 'b.txt', 'c.txt', 'd.txt', 'test-1/', 'test-1/b.txt', 'test-sub-1/', 'test-sub-1/sub-b.txt', 'test-sub-1/sub-c.txt', 'test-sub-1/test-sub-sub-1/', 'test-sub-1/test-sub-sub-1/sub-sub-b.txt', 'test-sub-1/test-sub-sub-1/sub-sub-c.txt' ];
+      fsEntries.forEach(entry => {
+        fileList.push(entry.relativePath);
+      });
+      expect(fileList).to.be.deep.equal(walkList);
+    });
+    it('test-1', function () {
+      let fsEntries = fs.entries('test-1');
+      let fileList = [];
+      let walkList = [ 'b.txt' ];
+      fsEntries.forEach(entry => {
+        fileList.push(entry.relativePath);
+      });
+
+      expect(fileList).to.be.deep.equal(walkList);
+    });
+    it('test-sub-1', function() {
+      let fsEntries = fs.entries('test-sub-1');
+      let fileList = [];
+      let walkList = [ 'sub-b.txt', 'sub-c.txt', 'test-sub-sub-1/', 'test-sub-sub-1/sub-sub-b.txt', 'test-sub-sub-1/sub-sub-c.txt' ];
+      fsEntries.forEach(entry => {
+        fileList.push(entry.relativePath);
+      });
+
+      expect(fileList).to.be.deep.equal(walkList);
+    });
+    it('test-sub-1/test-sub-sub-1', function() {
+      let fsEntries = fs.entries('test-sub-1/test-sub-sub-1');
+      let fileList = [];
+      let walkList = [ 'sub-sub-b.txt', 'sub-sub-c.txt' ];
+      fsEntries.forEach(entry => {
+        fileList.push(entry.relativePath);
+      });
+
+      expect(fileList).to.be.deep.equal(walkList);
+    });
   });
 });
