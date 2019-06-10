@@ -2,6 +2,21 @@
 const fs = require('fs-extra');
 const walkSync = require('walk-sync');
 const path = require('path');
+
+function getRootAndPrefix(item) {
+  let root = '';
+  let prefix = '';
+  if (typeof item == 'string') {
+    root = item;
+  } else {
+    root = item.root || item.outputPath;
+    prefix = item.prefix || '';
+  }
+  return {
+    root: root,
+    prefix: prefix
+  }
+}
 class FSMerge {
   constructor(paths) {
     this._dirList = Array.isArray(paths) ? paths : [paths];
@@ -11,13 +26,8 @@ class FSMerge {
     let { _dirList } = this;
     let result = null;
     for (let i=0; i < _dirList.length; i++) {
-      let basePath = '';
-      if (typeof _dirList[i] == 'string') {
-        basePath = _dirList[i];
-      } else {
-        basePath = _dirList[i].root;
-      }
-      let fullPath = basePath + '/' + filePath;
+      let { root } = getRootAndPrefix(_dirList[i]);
+      let fullPath = root + '/' + filePath;
       if(fs.existsSync(fullPath)) {
         result = fs.readFileSync(fullPath, options);
       }
@@ -28,20 +38,20 @@ class FSMerge {
   readFileMeta(filePath, options) {
     let { _dirList } = this;
     let result = null;
-    let { basePath } = options;
+    let { basePath } = options || {};
     for (let i=0; i < _dirList.length; i++) {
-      let root = _dirList[i].root ? _dirList[i].root : _dirList[i];
+      let { root, prefix } = getRootAndPrefix(_dirList[i]);
       if (basePath == root) {
         return {
           path: root + '/' + filePath,
-          prefix: _dirList[i].prefix || ''
+          prefix: prefix
         }
       }
       let fullPath = root + '/' + filePath;
       if(fs.existsSync(fullPath)) {
         result = {
           path: fullPath,
-          prefix: _dirList[i].prefix || ''
+          prefix: prefix
         };
       }
     }
@@ -52,13 +62,8 @@ class FSMerge {
     let { _dirList } = this;
     let result = [];
     for (let i=0; i < _dirList.length; i++) {
-      let basePath = '';
-      if (typeof _dirList[i] == 'string') {
-        basePath = _dirList[i];
-      } else {
-        basePath = _dirList[i].root;
-      }
-      let fullDirPath = basePath + '/' + dirPath;
+      let { root } = getRootAndPrefix(_dirList[i]);
+      let fullDirPath = root + '/' + dirPath;
       fullDirPath = fullDirPath.replace(/(\/|\/\/)$/, '');
       if(fs.existsSync(fullDirPath)) {
         result.push.apply(result, fs.readdirSync(fullDirPath, options));
@@ -72,15 +77,11 @@ class FSMerge {
     let result = [];
     let hashStore = {};
     for (let i=0; i < _dirList.length; i++) {
-      let basePath = '';
-      let prefix = '';
-      if (typeof _dirList[i] == 'string') {
-        basePath = _dirList[i];
-      } else {
-        basePath = _dirList[i].root;
-        prefix = _dirList[i].prefix;
+      let { root, prefix } = getRootAndPrefix(_dirList[i]);
+      if (!root) {
+        throw new Error('FSReader must be instatiated with string or object');
       }
-      let fullDirPath = dirPath ? basePath + '/' + dirPath : basePath;
+      let fullDirPath = dirPath ? root + '/' + dirPath : root;
       fullDirPath = fullDirPath.replace(/(\/|\/\/)$/, '');
       if(fs.existsSync(fullDirPath)) {
         let curEntryList = walkSync.entries(fullDirPath, options);

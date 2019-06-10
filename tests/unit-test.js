@@ -3,9 +3,6 @@ const expect = require("chai").expect;
 const FSMerge = require('../index');
 const fixturify = require('fixturify');
 const rm = require('rimraf').sync;
-const FSTree = require('fs-tree-diff');
-const fsExtra = require('fs-extra');
-const walksync = require('walk-sync');
 
 describe('fs-reader', function () {
   before(function() {
@@ -14,7 +11,8 @@ describe('fs-reader', function () {
         'a.txt': 'hello',
         'test-1': {
           'b.txt': 'b contains text'
-        }
+        },
+        'x.txt': 'one more file'
       },
       'test-2': {
         'a.txt': 'this is same other',
@@ -65,6 +63,35 @@ describe('fs-reader', function () {
       expect(content).to.be.equal('this is inside of test-sub-sub-1');
     });
   });
+  describe('Reads file meta details', function() {
+    let fs = new FSMerge(['fixtures/test-1', {
+      root: 'fixtures/test-2',
+      prefix: 'test-2',
+    }, {
+      outputPath: 'fixtures/test-3'
+    }]);
+    it('correct meta for string', function () {
+      let meta = fs.readFileMeta('x.txt');
+      expect(meta).to.eql({
+        path: 'fixtures/test-1/x.txt',
+        prefix: ''
+      });
+    });
+    it('correct meta for provided prefix', function () {
+      let meta = fs.readFileMeta('c.txt');
+      expect(meta).to.eql({
+        path: 'fixtures/test-2/c.txt',
+        prefix: 'test-2'
+      });
+    });
+    it('correct meta for broccoli node', function () {
+      let meta = fs.readFileMeta('d.txt')
+      expect(meta).to.eql({
+        path: 'fixtures/test-3/d.txt',
+        prefix: ''
+      })
+    });
+  });
   describe('Reads contents of the folder from location', function() {
     let fs = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
     it('test-1', function() {
@@ -81,7 +108,7 @@ describe('fs-reader', function () {
     });
     it('/', function() {
       let content = fs.readDirSync('/');
-      expect(content).to.be.deep.equal([ 'a.txt', 'test-1', 'c.txt', 'test-sub-1', 'b.txt', 'd.txt']);
+      expect(content).to.be.deep.equal([ 'a.txt', 'test-1', 'x.txt','c.txt', 'test-sub-1', 'b.txt', 'd.txt']);
     });
   });
   describe('Returns entries for', function() {
@@ -89,7 +116,7 @@ describe('fs-reader', function () {
     it('root path', function () {
       let fsEntries = fs.entries();
       let fileList = [];
-      let walkList = ['a.txt', 'b.txt', 'c.txt', 'd.txt', 'test-1/', 'test-1/b.txt', 'test-sub-1/', 'test-sub-1/sub-b.txt', 'test-sub-1/sub-c.txt', 'test-sub-1/test-sub-sub-1/', 'test-sub-1/test-sub-sub-1/sub-sub-b.txt', 'test-sub-1/test-sub-sub-1/sub-sub-c.txt' ];
+      let walkList = ['a.txt', 'b.txt', 'c.txt', 'd.txt', 'test-1/', 'test-1/b.txt', 'test-sub-1/', 'test-sub-1/sub-b.txt', 'test-sub-1/sub-c.txt', 'test-sub-1/test-sub-sub-1/', 'test-sub-1/test-sub-sub-1/sub-sub-b.txt', 'test-sub-1/test-sub-sub-1/sub-sub-c.txt', 'x.txt' ];
       fsEntries.forEach(entry => {
         fileList.push(entry.relativePath);
       });

@@ -1,5 +1,5 @@
 {
-  "name": "fs-reader",
+  "name": "fs-merger",
   "version": "1.0.0",
   "description": "Reads files from a real location",
   "main": "index.js",
@@ -15,8 +15,6 @@
     "mocha": "^6.1.4"
   },
   "dependencies": {
-    "broccoli": "^3.0.0",
-    "broccoli-merge-trees": "^3.0.2",
     "fs-extra": "^8.0.1",
     "fs-tree-diff": "^2.0.1",
     "rimraf": "^2.6.3",
