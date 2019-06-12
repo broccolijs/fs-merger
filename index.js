@@ -20,6 +20,11 @@ function getRootAndPrefix(item) {
 class FSMerge {
   constructor(paths) {
     this._dirList = Array.isArray(paths) ? paths : [paths];
+    this.MAP = this._dirList.reduce(function(map, obj) {
+      let { root } = getRootAndPrefix(obj);
+      map[root] = obj;
+      return map;
+    }, {});
   }
 
   readFileSync(filePath, options) {
@@ -39,6 +44,13 @@ class FSMerge {
     let { _dirList } = this;
     let result = null;
     let { basePath } = options || {};
+    if (this.MAP[basePath]) {
+      let { root, prefix } = this.MAP[basePath];
+      return {
+        path: root + '/' + filePath,
+        prefix: prefix
+      }
+    }
     for (let i=0; i < _dirList.length; i++) {
       let { root, prefix } = getRootAndPrefix(_dirList[i]);
       if (basePath == root) {
