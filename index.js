@@ -6,15 +6,18 @@ const path = require('path');
 function getRootAndPrefix(item) {
   let root = '';
   let prefix = '';
+  let getDestinationPath = '';
   if (typeof item == 'string') {
     root = item;
   } else {
     root = item.root || item.outputPath;
     prefix = item.prefix || '';
+    getDestinationPath = item.getDestinationPath
   }
   return {
     root: root,
-    prefix: prefix
+    prefix: prefix,
+    getDestinationPath: getDestinationPath
   }
 }
 class FSMerge {
@@ -45,25 +48,28 @@ class FSMerge {
     let result = null;
     let { basePath } = options || {};
     if (this.MAP[basePath]) {
-      let { root, prefix } = this.MAP[basePath];
+      let { root, prefix, getDestinationPath } = this.MAP[basePath];
       return {
         path: root + '/' + filePath,
-        prefix: prefix
+        prefix: prefix,
+        getDestinationPath: getDestinationPath
       }
     }
     for (let i=0; i < _dirList.length; i++) {
-      let { root, prefix } = getRootAndPrefix(_dirList[i]);
+      let { root, prefix, getDestinationPath } = getRootAndPrefix(_dirList[i]);
       if (basePath == root) {
         return {
           path: root + '/' + filePath,
-          prefix: prefix
+          prefix: prefix,
+          getDestinationPath: getDestinationPath
         }
       }
       let fullPath = root + '/' + filePath;
       if(fs.existsSync(fullPath)) {
         result = {
           path: fullPath,
-          prefix: prefix
+          prefix: prefix,
+          getDestinationPath: getDestinationPath
         };
       }
     }
