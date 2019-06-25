@@ -95,7 +95,7 @@ class FSMerge {
     let result = [];
     let hashStore = {};
     for (let i=0; i < _dirList.length; i++) {
-      let { root, prefix } = getRootAndPrefix(_dirList[i]);
+      let { root, prefix, getDestinationPath } = getRootAndPrefix(_dirList[i]);
       if (!root) {
         throw new Error('FSReader must be instatiated with string or object');
       }
@@ -104,7 +104,9 @@ class FSMerge {
       if(fs.existsSync(fullDirPath)) {
         let curEntryList = walkSync.entries(fullDirPath, options);
         hashStore = curEntryList.reduce((hashStoreAccumulated, entry) => {
-          hashStoreAccumulated[path.join(entry.relativePath, prefix)] = entry;
+          let relativePath = getDestinationPath ? getDestinationPath(entry.relativePath) : entry.relativePath;
+          relativePath = prefix ? path.join(relativePath, prefix) : relativePath;
+          hashStoreAccumulated[relativePath] = entry;
           return hashStoreAccumulated;
         }, hashStore);
       }

@@ -67,6 +67,7 @@ describe('fs-reader', function () {
     let fs = new FSMerge(['fixtures/test-1', {
       root: 'fixtures/test-2',
       prefix: 'test-2',
+      getDestinationPath: undefined
     }, {
       outputPath: 'fixtures/test-3'
     }]);
@@ -74,21 +75,24 @@ describe('fs-reader', function () {
       let meta = fs.readFileMeta('x.txt');
       expect(meta).to.eql({
         path: 'fixtures/test-1/x.txt',
-        prefix: ''
+        prefix: '',
+        getDestinationPath: '',
       });
     });
     it('correct meta for provided prefix', function () {
       let meta = fs.readFileMeta('c.txt');
       expect(meta).to.eql({
         path: 'fixtures/test-2/c.txt',
-        prefix: 'test-2'
+        prefix: 'test-2',
+        getDestinationPath: undefined,
       });
     });
     it('correct meta for broccoli node', function () {
       let meta = fs.readFileMeta('d.txt')
       expect(meta).to.eql({
         path: 'fixtures/test-3/d.txt',
-        prefix: ''
+        prefix: '',
+        getDestinationPath: undefined,
       })
     });
   });
