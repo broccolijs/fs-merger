@@ -76,7 +76,7 @@ describe('fs-reader', function () {
       expect(meta).to.eql({
         path: 'fixtures/test-1/x.txt',
         prefix: '',
-        getDestinationPath: '',
+        getDestinationPath: undefined,
       });
     });
     it('correct meta for provided prefix', function () {

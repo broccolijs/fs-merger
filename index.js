@@ -3,29 +3,29 @@ const fs = require('fs-extra');
 const walkSync = require('walk-sync');
 const path = require('path');
 
-function getRootAndPrefix(item) {
+function getRootAndPrefix(tree) {
   let root = '';
   let prefix = '';
-  let getDestinationPath = '';
-  if (typeof item == 'string') {
-    root = item;
+  let getDestinationPath = undefined;
+  if (typeof tree == 'string') {
+    root = tree;
+  } else if (tree._watched && tree._directoryPath) {
+    root = tree.root || tree._directoryPath;
   } else {
-    root = item.root || item.outputPath;
-    prefix = item.prefix || '';
-    getDestinationPath = item.getDestinationPath
+    root = tree.root || tree.outputPath;
   }
   return {
     root: root,
-    prefix: prefix,
-    getDestinationPath: getDestinationPath
+    prefix: tree.prefix || prefix,
+    getDestinationPath: tree.getDestinationPath || getDestinationPath
   }
 }
 class FSMerge {
-  constructor(paths) {
-    this._dirList = Array.isArray(paths) ? paths : [paths];
-    this.MAP = this._dirList.reduce(function(map, obj) {
-      let { root } = getRootAndPrefix(obj);
-      map[root] = obj;
+  constructor(trees) {
+    this._dirList = Array.isArray(trees) ? trees : [trees];
+    this.MAP = this._dirList.reduce(function(map, tree) {
+      let parsedTree = getRootAndPrefix(tree);
+      map[parsedTree.root] = parsedTree;
       return map;
     }, {});
   }
@@ -97,7 +97,7 @@ class FSMerge {
     for (let i=0; i < _dirList.length; i++) {
       let { root, prefix, getDestinationPath } = getRootAndPrefix(_dirList[i]);
       if (!root) {
-        throw new Error('FSReader must be instatiated with string or object');
+        throw new Error('FSMerger must be instatiated with string or BroccoliNode or Object with root');
       }
       let fullDirPath = dirPath ? root + '/' + dirPath : root;
       fullDirPath = fullDirPath.replace(/(\/|\/\/)$/, '');
