@@ -20,6 +20,17 @@ function getRootAndPrefix(tree) {
     getDestinationPath: tree.getDestinationPath || getDestinationPath
   }
 }
+
+function getValues(object) {
+  if (Object.values) {
+    return Object.values(object);
+  } else {
+    return Object.keys(object).map(function(key) {
+      return object[key];
+    });
+  }
+}
+
 class FSMerge {
   constructor(trees) {
     this._dirList = Array.isArray(trees) ? trees : [trees];
@@ -111,7 +122,7 @@ class FSMerge {
         }, hashStore);
       }
     }
-    result = Object.values(hashStore);
+    result = getValues(hashStore);
     result.sort((entryA, entryB) => (entryA.relativePath > entryB.relativePath) ? 1 : -1);
     return result;
   }
