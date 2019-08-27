@@ -15,7 +15,7 @@ function getRootAndPrefix(tree) {
     root = tree.root || tree.outputPath;
   }
   return {
-    root: root,
+    root: path.normalize(root),
     prefix: tree.prefix || prefix,
     getDestinationPath: tree.getDestinationPath || getDestinationPath
   }

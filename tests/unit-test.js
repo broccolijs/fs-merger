@@ -95,6 +95,14 @@ describe('fs-reader', function () {
         getDestinationPath: undefined,
       })
     });
+    it('correct meta when basePath is provided', function () {
+      let meta = fs.readFileMeta('d.txt', { basePath: 'fixtures/test-3'})
+      expect(meta).to.eql({
+        path: 'fixtures/test-3/d.txt',
+        prefix: '',
+        getDestinationPath: undefined,
+      })
+    });
   });
   describe('Reads contents of the folder from location', function() {
     let fs = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
