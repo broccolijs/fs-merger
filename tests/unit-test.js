@@ -3,6 +3,7 @@ const expect = require("chai").expect;
 const FSMerge = require('../index');
 const fixturify = require('fixturify');
 const rm = require('rimraf').sync;
+const path = require('path');
 
 describe('fs-reader', function () {
   before(function() {
@@ -74,7 +75,7 @@ describe('fs-reader', function () {
     it('correct meta for string', function () {
       let meta = fs.readFileMeta('x.txt');
       expect(meta).to.eql({
-        path: 'fixtures/test-1/x.txt',
+        path: path.normalize('fixtures/test-1/x.txt'),
         prefix: '',
         getDestinationPath: undefined,
       });
@@ -82,7 +83,7 @@ describe('fs-reader', function () {
     it('correct meta for provided prefix', function () {
       let meta = fs.readFileMeta('c.txt');
       expect(meta).to.eql({
-        path: 'fixtures/test-2/c.txt',
+        path: path.normalize('fixtures/test-2/c.txt'),
         prefix: 'test-2',
         getDestinationPath: undefined,
       });
@@ -90,7 +91,15 @@ describe('fs-reader', function () {
     it('correct meta for broccoli node', function () {
       let meta = fs.readFileMeta('d.txt')
       expect(meta).to.eql({
-        path: 'fixtures/test-3/d.txt',
+        path: path.normalize('fixtures/test-3/d.txt'),
+        prefix: '',
+        getDestinationPath: undefined,
+      })
+    });
+    it('correct meta when basePath is provided', function () {
+      let meta = fs.readFileMeta('d.txt', { basePath: 'fixtures/test-3'})
+      expect(meta).to.eql({
+        path: path.normalize('fixtures/test-3/d.txt'),
         prefix: '',
         getDestinationPath: undefined,
       })

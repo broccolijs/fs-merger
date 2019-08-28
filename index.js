@@ -15,7 +15,7 @@ function getRootAndPrefix(tree) {
     root = tree.root || tree.outputPath;
   }
   return {
-    root: root,
+    root: path.normalize(root),
     prefix: tree.prefix || prefix,
     getDestinationPath: tree.getDestinationPath || getDestinationPath
   }
@@ -58,10 +58,11 @@ class FSMerge {
     let { _dirList } = this;
     let result = null;
     let { basePath } = options || {};
+    basePath = basePath && path.normalize(basePath);
     if (this.MAP[basePath]) {
       let { root, prefix, getDestinationPath } = this.MAP[basePath];
       return {
-        path: root + '/' + filePath,
+        path: path.join(root, filePath),
         prefix: prefix,
         getDestinationPath: getDestinationPath
       }
@@ -70,12 +71,12 @@ class FSMerge {
       let { root, prefix, getDestinationPath } = getRootAndPrefix(_dirList[i]);
       if (basePath == root) {
         return {
-          path: root + '/' + filePath,
+          path: path.join(root, filePath),
           prefix: prefix,
           getDestinationPath: getDestinationPath
         }
       }
-      let fullPath = root + '/' + filePath;
+      let fullPath = path.join(root, filePath);
       if(fs.existsSync(fullPath)) {
         result = {
           path: fullPath,
