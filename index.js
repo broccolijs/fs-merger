@@ -9,7 +9,7 @@ function getRootAndPrefix(tree) {
   let getDestinationPath = undefined;
   if (typeof tree == 'string') {
     root = tree;
-  } else if (tree._watched && tree._directoryPath) {
+  } else if (tree.hasOwnProperty('_watched') && tree._directoryPath) {
     root = tree.root || tree._directoryPath;
   } else {
     root = tree.root || tree.outputPath;

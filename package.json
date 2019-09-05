@@ -1,6 +1,6 @@
 {
   "name": "fs-merger",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Reads files from a real location",
   "main": "index.js",
   "author": "Sparshith NR",
