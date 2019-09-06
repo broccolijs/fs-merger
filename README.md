@@ -150,7 +150,7 @@ let FSMergerObjectWithPrefix = {
 
 let FSMergerObjectWithFileDest = {
     root: 'fixture/example',
-    getFileDestiation:  function (relativePath) {
+    getDestinationPath:  function (relativePath) {
       if (relativePath.includes('map.js')) {
         return 'metal.js';
       }
