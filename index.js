@@ -34,11 +34,6 @@ function getValues(object) {
 class FSMerge {
   constructor(trees) {
     this._dirList = Array.isArray(trees) ? trees : [trees];
-    this.MAP = this._dirList.reduce(function(map, tree) {
-      let parsedTree = getRootAndPrefix(tree);
-      map[parsedTree.root] = parsedTree;
-      return map;
-    }, {});
   }
 
   readFileSync(filePath, options) {
@@ -54,7 +49,18 @@ class FSMerge {
     return result;
   }
 
+  _generateMap() {
+    this.MAP = this._dirList.reduce(function(map, tree) {
+      let parsedTree = getRootAndPrefix(tree);
+      map[parsedTree.root] = parsedTree;
+      return map;
+    }, {});
+  }
+
   readFileMeta(filePath, options) {
+    if (!this.MAP) {
+      this._generateMap();
+    }
     let { _dirList } = this;
     let result = null;
     let { basePath } = options || {};
