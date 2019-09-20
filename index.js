@@ -123,7 +123,7 @@ class FSMerge {
         let curEntryList = walkSync.entries(fullDirPath, options);
         hashStore = curEntryList.reduce((hashStoreAccumulated, entry) => {
           let relativePath = getDestinationPath ? getDestinationPath(entry.relativePath) : entry.relativePath;
-          relativePath = prefix ? path.join(relativePath, prefix) : relativePath;
+          relativePath = prefix ? path.join(prefix, relativePath) : relativePath;
           hashStoreAccumulated[relativePath] = entry;
           return hashStoreAccumulated;
         }, hashStore);
