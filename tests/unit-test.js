@@ -23,6 +23,9 @@ describe('fs-reader', function () {
           'test-sub-sub-1': {
             'sub-sub-b.txt': 'this is inside of test-sub-sub-1'
           }
+        },
+        'test-sub-2': {
+
         }
       },
       'test-3': {
@@ -42,25 +45,25 @@ describe('fs-reader', function () {
   });
 
   describe('Reads file from given location', function() {
-    let fs = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
+    let fsMerger = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
     it('a.txt', function () {
-      let content = fs.readFileSync('a.txt', 'utf-8');
+      let content = fsMerger.fs.readFileSync('a.txt', 'utf-8');
       expect(content).to.be.equal('this is same other');
     });
     it('c.txt', function () {
-      let content = fs.readFileSync('c.txt', 'utf-8');
+      let content = fsMerger.fs.readFileSync('c.txt', 'utf-8');
       expect(content).to.be.equal('this is new file');
     });
     it('test-1/b.txt', function () {
-      let content = fs.readFileSync('c.txt', 'utf-8');
+      let content = fsMerger.fs.readFileSync('c.txt', 'utf-8');
       expect(content).to.be.equal('this is new file');
     });
     it('test-1/b.txt', function () {
-      let content = fs.readFileSync('test-1/b.txt', 'utf-8');
+      let content = fsMerger.fs.readFileSync('test-1/b.txt', 'utf-8');
       expect(content).to.be.equal('b contains text');
     });
     it('test-1/b.txt', function () {
-      let content = fs.readFileSync('test-sub-1/test-sub-sub-1/sub-sub-c.txt', 'utf-8');
+      let content = fsMerger.fs.readFileSync('test-sub-1/test-sub-sub-1/sub-sub-c.txt', 'utf-8');
       expect(content).to.be.equal('this is inside of test-sub-sub-1');
     });
   });
@@ -105,31 +108,140 @@ describe('fs-reader', function () {
       })
     });
   });
+
   describe('Reads contents of the folder from location', function() {
-    let fs = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
-    it('test-1', function() {
-      let content = fs.readDirSync('test-1');
-      expect(content).to.be.deep.equal(['b.txt']);
+    let fsMerger = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
+
+    describe('read test-1 folder', function() {
+      it('readdirSync', function() {
+        let content = fsMerger.fs.readdirSync('test-1');
+        expect(content).to.be.deep.equal(['b.txt']);
+      });
+      it('readdirSync', function(done) {
+        fsMerger.fs.readdir('test-1', function (err, content) {
+          expect(content).to.be.deep.equal(['b.txt']);
+          done();
+        });
+      });
     });
-    it('test-sub-1', function() {
-      let content = fs.readDirSync('test-sub-1');
-      expect(content).to.be.deep.equal([ 'sub-b.txt', 'test-sub-sub-1', 'sub-c.txt' ]);
+
+    describe('read test-sub-1 sub-folder', function() {
+      it('readdirSync', function() {
+        let content = fsMerger.fs.readdirSync('test-sub-1');
+        expect(content).to.be.deep.equal([ 'sub-b.txt', 'test-sub-sub-1', 'sub-c.txt' ]);
+      });
+      it('readdirSync', function(done) {
+        fsMerger.fs.readdir('test-sub-1', function (err, content) {
+          expect(content).to.be.deep.equal([ 'sub-b.txt', 'test-sub-sub-1', 'sub-c.txt' ]);
+          done();
+        });
+      });
     });
-    it('test-sub-1/test-sub-sub-1', function() {
-      let content = fs.readDirSync('test-sub-1/test-sub-sub-1');
-      expect(content).to.be.deep.equal([ 'sub-sub-b.txt', 'sub-sub-c.txt' ]);
+
+    describe('read test-sub-1/test-sub-sub-1 folder', function() {
+      it('readdirSync', function() {
+        let content = fsMerger.fs.readdirSync('test-sub-1/test-sub-sub-1');
+        expect(content).to.be.deep.equal([ 'sub-sub-b.txt', 'sub-sub-c.txt' ]);
+      });
+      it('readdirSync', function(done) {
+        fsMerger.fs.readdir('test-sub-1/test-sub-sub-1', function (err, content) {
+          expect(content).to.be.deep.equal([ 'sub-sub-b.txt', 'sub-sub-c.txt' ]);
+          done();
+        });
+      });
+
     });
-    it('/', function() {
-      let content = fs.readDirSync('/');
-      expect(content).to.be.deep.equal([ 'a.txt', 'test-1', 'x.txt','c.txt', 'test-sub-1', 'b.txt', 'd.txt']);
+
+    describe('read / folder', function() {
+      it('readdirsync', function() {
+        let content = fsMerger.fs.readdirSync('/');
+        expect(content).to.be.deep.equal([ 'a.txt', 'test-1', 'x.txt','c.txt', 'test-sub-1', 'test-sub-2', 'b.txt', 'd.txt']);
+      });
+      it('readdir', function(done) {
+        fsMerger.fs.readdir('/', function (err, content) {
+          expect(content).to.be.deep.equal([ 'a.txt', 'test-1', 'x.txt','c.txt', 'test-sub-1', 'test-sub-2', 'b.txt', 'd.txt']);
+          done();
+        });
+      });
+    });
+
+    describe('reading folder invalid folder will throw with absolute path', function() {
+      it('readdirsync', function() {
+        expect(() => {
+          fsMerger.fs.readdirSync('/sfsd')
+        }).throw(/ENOENT\: no such file or directory, scandir.*/);
+      });
+      it('readdir', function(done) {
+        fsMerger.fs.readdir('/sfsd', function (err) {
+          expect(err.message).to.be.contains(`ENOENT: no such file or directory, scandir`);
+          done();
+        });
+      });
+    });
+
+    describe('reading folder invalid folder will throw', function() {
+      it('readdirsync', function() {
+        expect(() => {
+          fsMerger.fs.readdirSync('/sfsd')
+        }).throw(/ENOENT\: no such file or directory, scandir.*/);
+      });
+
+      it('readdir', function(done) {
+        fsMerger.fs.readdir('sfsd', function (err) {
+          expect(err.message).to.be.contains(`ENOENT: no such file or directory, scandir `);
+          done();
+        });
+      });
+    });
+
+    describe(`shouldn't throw error when folder exist but empty`, function() {
+      it('readdirSync', function() {
+        let content = fsMerger.fs.readdirSync('test-sub-2');
+        expect(content).to.be.deep.equal([]);
+      });
+      it('readdirSync', function(done) {
+        fsMerger.fs.readdir('test-sub-2', function (err, content) {
+          expect(content).to.be.deep.equal([]);
+          done();
+        });
+      });
     });
   });
+
+  describe('Verify few fs operations', function() {
+    let fsMerger = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
+
+    it('existsSync works', function() {
+      let content = fsMerger.fs.existsSync('test-1');
+      expect(content).to.be.true;
+    });
+
+    it('exists works', function(done) {
+      fsMerger.fs.exists('test-1', function (content) {
+        expect(content).to.be.true;
+        done();
+      });
+    });
+
+    it('absolute path works', function() {
+      let exist = fsMerger.fs.existsSync(`${__dirname}/../fixtures/test-1`);
+      expect(exist).to.be.true;
+    });
+
+    it('writeFileSync operation must throw error', function () {
+      let fsMerger = new FSMerge(['fixtures/test-1']);
+      expect(()=>{
+        fsMerger.fs.writeFileSync('read.md', 'test');
+      }).to.throw(`Operation writeFileSync is a write operation, not allowed with FSMerger.fs`)
+    });
+  });
+
   describe('Returns entries for', function() {
     let fs = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
     it('root path', function () {
       let fsEntries = fs.entries();
       let fileList = [];
-      let walkList = ['a.txt', 'b.txt', 'c.txt', 'd.txt', 'test-1/', 'test-1/b.txt', 'test-sub-1/', 'test-sub-1/sub-b.txt', 'test-sub-1/sub-c.txt', 'test-sub-1/test-sub-sub-1/', 'test-sub-1/test-sub-sub-1/sub-sub-b.txt', 'test-sub-1/test-sub-sub-1/sub-sub-c.txt', 'x.txt' ];
+      let walkList = ['a.txt', 'b.txt', 'c.txt', 'd.txt', 'test-1/', 'test-1/b.txt', 'test-sub-1/', 'test-sub-1/sub-b.txt', 'test-sub-1/sub-c.txt', 'test-sub-1/test-sub-sub-1/', 'test-sub-1/test-sub-sub-1/sub-sub-b.txt', 'test-sub-1/test-sub-sub-1/sub-sub-c.txt', 'test-sub-2/' ,'x.txt'];
       fsEntries.forEach(entry => {
         fileList.push(entry.relativePath);
       });
