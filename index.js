@@ -170,24 +170,35 @@ class FSMerge {
 
   readdir(dirPath, callback) {
     let result = [];
-    let promise = new Promise((res, rej) => {
-      try {
-        result = this.readdirSync(dirPath);
-      } catch(err) {
-        res({
-          err: err
-        });
-        return;
+    let { _dirList } = this;
+    let fullDirPath = '';
+    let existingPath = [];
+    for (let i=0; i < _dirList.length; i++) {
+      let { root } = getRootAndPrefix(_dirList[i]);
+      fullDirPath = root + '/' + dirPath;
+      fullDirPath = fullDirPath.replace(/(\/|\/\/)$/, '');
+      if(fs.existsSync(fullDirPath)) {
+        existingPath.push(fullDirPath);
       }
-      res({
-        err: null,
-        list: result
+    }
+    if (!existingPath.length) {
+      fs.readdir(fullDirPath, callback);
+    }
+    let readComplete = 0;
+    for (let i = 0; i < existingPath.length; i++) {
+      fs.readdir(existingPath[i], (err, list) => {
+        readComplete += 1;
+        result.push.apply(result, list);
+        if (readComplete == existingPath.length || err) {
+          if (err) {
+            result = undefined;
+          } else {
+            result = [...new Set(result)];
+          }
+          callback(err, result);
+        }
       });
-      return;
-    });
-    promise.then((result) => {
-      callback(result.err, result.list && [...new Set(result.list)]);
-    });
+    }
   }
 
   entries(dirPath = '', options) {

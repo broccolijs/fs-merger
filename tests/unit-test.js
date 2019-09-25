@@ -4,6 +4,7 @@ const FSMerge = require('../index');
 const fixturify = require('fixturify');
 const rm = require('rimraf').sync;
 const path = require('path');
+const fs = require('fs');
 
 describe('fs-reader', function () {
   before(function() {
@@ -117,9 +118,9 @@ describe('fs-reader', function () {
         let content = fsMerger.fs.readdirSync('test-1');
         expect(content).to.be.deep.equal(['b.txt']);
       });
-      it('readdirSync', function(done) {
+      it('readdir', function(done) {
         fsMerger.fs.readdir('test-1', function (err, content) {
-          expect(content).to.be.deep.equal(['b.txt']);
+          expect(content).to.have.all.members(['b.txt']);
           done();
         });
       });
@@ -130,9 +131,9 @@ describe('fs-reader', function () {
         let content = fsMerger.fs.readdirSync('test-sub-1');
         expect(content).to.be.deep.equal([ 'sub-b.txt', 'test-sub-sub-1', 'sub-c.txt' ]);
       });
-      it('readdirSync', function(done) {
+      it('readdir', function(done) {
         fsMerger.fs.readdir('test-sub-1', function (err, content) {
-          expect(content).to.be.deep.equal([ 'sub-b.txt', 'test-sub-sub-1', 'sub-c.txt' ]);
+          expect(content).to.have.all.members([ 'sub-b.txt', 'test-sub-sub-1', 'sub-c.txt' ]);
           done();
         });
       });
@@ -143,9 +144,9 @@ describe('fs-reader', function () {
         let content = fsMerger.fs.readdirSync('test-sub-1/test-sub-sub-1');
         expect(content).to.be.deep.equal([ 'sub-sub-b.txt', 'sub-sub-c.txt' ]);
       });
-      it('readdirSync', function(done) {
+      it('readdir', function(done) {
         fsMerger.fs.readdir('test-sub-1/test-sub-sub-1', function (err, content) {
-          expect(content).to.be.deep.equal([ 'sub-sub-b.txt', 'sub-sub-c.txt' ]);
+          expect(content).to.have.all.members([ 'sub-sub-b.txt', 'sub-sub-c.txt' ]);
           done();
         });
       });
@@ -159,7 +160,7 @@ describe('fs-reader', function () {
       });
       it('readdir', function(done) {
         fsMerger.fs.readdir('/', function (err, content) {
-          expect(content).to.be.deep.equal([ 'a.txt', 'test-1', 'x.txt','c.txt', 'test-sub-1', 'test-sub-2', 'b.txt', 'd.txt']);
+          expect(content).to.have.all.members([ 'a.txt', 'test-1', 'x.txt','c.txt', 'test-sub-1', 'test-sub-2', 'b.txt', 'd.txt']);
           done();
         });
       });
@@ -199,10 +200,35 @@ describe('fs-reader', function () {
         let content = fsMerger.fs.readdirSync('test-sub-2');
         expect(content).to.be.deep.equal([]);
       });
-      it('readdirSync', function(done) {
+      it('readdir', function(done) {
         fsMerger.fs.readdir('test-sub-2', function (err, content) {
-          expect(content).to.be.deep.equal([]);
+          expect(content).to.have.all.members([]);
           done();
+        });
+      });
+    });
+
+    describe(`error from fs.readdir matches error from fsMerger.fs.readdir`, function() {
+      it('readdir', function(done) {
+        let fsError = '';
+        fs.readdir('fixtures/test-1/test-1', (err, list) => {
+          try {
+            fs.readFileSync(list[0]);
+          }catch (error) {
+            fsError = error;
+          }
+        });
+        fsMerger.fs.readdir('test-1', (err, list) => {
+          try {
+            fs.readFileSync(list[0]);
+          } catch (error) {
+            expect(error.syscall).to.be.equal(fsError.syscall);
+            expect(error.errno).to.be.equal(fsError.errno);
+            expect(error.message).to.be.equal(fsError.message);
+            expect(error.code).to.be.equal(fsError.code);
+            expect(error.path).to.be.equal(fsError.path);
+            done();
+          }
         });
       });
     });
