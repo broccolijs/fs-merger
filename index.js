@@ -2,6 +2,26 @@
 const fs = require('fs-extra');
 const walkSync = require('walk-sync');
 const path = require('path');
+const nodefs = require('fs');
+const WRITEOPERATION = new Set([
+  'write',
+  'writeSync',
+  'writeFile',
+  'writeFileSync',
+  'writev',
+  'writevSync',
+  'appendFileSync',
+  'appendFile',
+  'rmdir',
+  'rmdirSync',
+  'mkdir',
+  'mkdirSync'
+]);
+
+const READDIR = new Set([
+  'readdirSync',
+  'readdir'
+]);
 
 function getRootAndPrefix(tree) {
   let root = '';
@@ -34,6 +54,40 @@ function getValues(object) {
 class FSMerge {
   constructor(trees) {
     this._dirList = Array.isArray(trees) ? trees : [trees];
+    let self = this;
+    this.fs = new Proxy(nodefs, {
+      get(target, propertyName) {
+        if(!WRITEOPERATION.has(propertyName)) {
+          if (READDIR.has(propertyName)) {
+            return function() {
+              let [relativePath] = arguments;
+              if (path.isAbsolute(relativePath) && relativePath.trim() != '/') {
+                return target[propertyName](...arguments);
+              }
+              return self[propertyName](...arguments);
+            }
+          }
+          return function() {
+            let [relativePath] = arguments;
+            let { _dirList } = self;
+            let fullPath = relativePath;
+            if (!path.isAbsolute(relativePath)) {
+              for (let i=0; i < _dirList.length; i++) {
+                let { root } = getRootAndPrefix(_dirList[i]);
+                let tempPath = root + '/' + relativePath;
+                if(fs.existsSync(tempPath)) {
+                  fullPath = tempPath;
+                }
+              }
+            }
+            arguments[0] = fullPath;
+            return target[propertyName](...arguments);
+          }
+        } else {
+          throw new Error(`Operation ${propertyName} is a write operation, not allowed with FSMerger.fs`);
+        }
+      }
+    });
   }
 
   readFileSync(filePath, options) {
@@ -94,18 +148,57 @@ class FSMerge {
     return result;
   }
 
-  readDirSync(dirPath, options) {
+  readdirSync(dirPath, options) {
     let { _dirList } = this;
-    let result = [];
+    let result = [], errorCount = 0;
+    let fullDirPath = '';
     for (let i=0; i < _dirList.length; i++) {
       let { root } = getRootAndPrefix(_dirList[i]);
-      let fullDirPath = root + '/' + dirPath;
+      fullDirPath = root + '/' + dirPath;
       fullDirPath = fullDirPath.replace(/(\/|\/\/)$/, '');
       if(fs.existsSync(fullDirPath)) {
         result.push.apply(result, fs.readdirSync(fullDirPath, options));
+      } else {
+        errorCount += 1;
       }
     }
+    if (errorCount == _dirList.length) {
+      fs.readdirSync(fullDirPath);
+    }
     return [...new Set(result)];
+  }
+
+  readdir(dirPath, callback) {
+    let result = [];
+    let { _dirList } = this;
+    let fullDirPath = '';
+    let existingPath = [];
+    for (let i=0; i < _dirList.length; i++) {
+      let { root } = getRootAndPrefix(_dirList[i]);
+      fullDirPath = root + '/' + dirPath;
+      fullDirPath = fullDirPath.replace(/(\/|\/\/)$/, '');
+      if(fs.existsSync(fullDirPath)) {
+        existingPath.push(fullDirPath);
+      }
+    }
+    if (!existingPath.length) {
+      fs.readdir(fullDirPath, callback);
+    }
+    let readComplete = 0;
+    for (let i = 0; i < existingPath.length; i++) {
+      fs.readdir(existingPath[i], (err, list) => {
+        readComplete += 1;
+        result.push.apply(result, list);
+        if (readComplete == existingPath.length || err) {
+          if (err) {
+            result = undefined;
+          } else {
+            result = [...new Set(result)];
+          }
+          callback(err, result);
+        }
+      });
+    }
   }
 
   entries(dirPath = '', options) {
