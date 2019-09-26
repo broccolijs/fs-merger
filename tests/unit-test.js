@@ -242,6 +242,16 @@ describe('fs-reader', function () {
       expect(content).to.be.true;
     });
 
+    it('hasOwnProperty works', function() {
+      debugger
+      let content = fsMerger.fs.hasOwnProperty('existsSync');
+      expect(content).to.be.true;
+    });
+
+    it('non function property works', function() {
+      expect(fsMerger.fs.F_OK).to.be.equal(fs.F_OK);
+    });
+
     it('exists works', function(done) {
       fsMerger.fs.exists('test-1', function (content) {
         expect(content).to.be.true;
@@ -263,9 +273,9 @@ describe('fs-reader', function () {
   });
 
   describe('Returns entries for', function() {
-    let fs = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
+    let fsMerger = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
     it('root path', function () {
-      let fsEntries = fs.entries();
+      let fsEntries = fsMerger.entries();
       let fileList = [];
       let walkList = ['a.txt', 'b.txt', 'c.txt', 'd.txt', 'test-1/', 'test-1/b.txt', 'test-sub-1/', 'test-sub-1/sub-b.txt', 'test-sub-1/sub-c.txt', 'test-sub-1/test-sub-sub-1/', 'test-sub-1/test-sub-sub-1/sub-sub-b.txt', 'test-sub-1/test-sub-sub-1/sub-sub-c.txt', 'test-sub-2/' ,'x.txt'];
       fsEntries.forEach(entry => {
@@ -274,7 +284,7 @@ describe('fs-reader', function () {
       expect(fileList).to.be.deep.equal(walkList);
     });
     it('test-1', function () {
-      let fsEntries = fs.entries('test-1');
+      let fsEntries = fsMerger.entries('test-1');
       let fileList = [];
       let walkList = [ 'b.txt' ];
       fsEntries.forEach(entry => {
@@ -284,7 +294,7 @@ describe('fs-reader', function () {
       expect(fileList).to.be.deep.equal(walkList);
     });
     it('test-sub-1', function() {
-      let fsEntries = fs.entries('test-sub-1');
+      let fsEntries = fsMerger.entries('test-sub-1');
       let fileList = [];
       let walkList = [ 'sub-b.txt', 'sub-c.txt', 'test-sub-sub-1/', 'test-sub-sub-1/sub-sub-b.txt', 'test-sub-sub-1/sub-sub-c.txt' ];
       fsEntries.forEach(entry => {
@@ -294,13 +304,23 @@ describe('fs-reader', function () {
       expect(fileList).to.be.deep.equal(walkList);
     });
     it('test-sub-1/test-sub-sub-1', function() {
-      let fsEntries = fs.entries('test-sub-1/test-sub-sub-1');
+      let fsEntries = fsMerger.entries('test-sub-1/test-sub-sub-1');
       let fileList = [];
       let walkList = [ 'sub-sub-b.txt', 'sub-sub-c.txt' ];
       fsEntries.forEach(entry => {
         fileList.push(entry.relativePath);
       });
+      expect(fileList).to.be.deep.equal(walkList);
+    });
 
+    it('can read entries from fsMeger.fs as well', function () {
+      fsMerger = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']).fs;
+      let fsEntries = fsMerger.entries();
+      let fileList = [];
+      let walkList = ['a.txt', 'b.txt', 'c.txt', 'd.txt', 'test-1/', 'test-1/b.txt', 'test-sub-1/', 'test-sub-1/sub-b.txt', 'test-sub-1/sub-c.txt', 'test-sub-1/test-sub-sub-1/', 'test-sub-1/test-sub-sub-1/sub-sub-b.txt', 'test-sub-1/test-sub-sub-1/sub-sub-c.txt', 'test-sub-2/' ,'x.txt'];
+      fsEntries.forEach(entry => {
+        fileList.push(entry.relativePath);
+      });
       expect(fileList).to.be.deep.equal(walkList);
     });
   });
