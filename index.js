@@ -66,6 +66,12 @@ class FSMerge {
               }
               return self[propertyName](...arguments);
             }
+          } else if (self[propertyName] && !target[propertyName]) { // when fsMerger.fs.hasOwnProperty is accessed we shouldn't be hijacking it to self.hasOwnProperty
+            return function() {
+              return self[propertyName](...arguments);
+            }
+          } else if (typeof target[propertyName] !== 'function') {
+            return target[propertyName];
           }
           return function() {
             let [relativePath] = arguments;
