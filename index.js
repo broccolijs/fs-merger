@@ -3,24 +3,12 @@ const fs = require('fs-extra');
 const walkSync = require('walk-sync');
 const path = require('path');
 const nodefs = require('fs');
-const WRITEOPERATION = new Set([
-  'write',
-  'writeSync',
-  'writeFile',
-  'writeFileSync',
-  'writev',
-  'writevSync',
-  'appendFileSync',
-  'appendFile',
-  'rmdir',
-  'rmdirSync',
-  'mkdir',
-  'mkdirSync'
-]);
-
-const READDIR = new Set([
-  'readdirSync',
-  'readdir'
+const WHITELISTEDOPERATION = new Set([
+  'readFileSync',
+  'existsSync',
+  'lstatSync',
+  'statSync',
+  'readdirSync'
 ]);
 
 function getRootAndPrefix(tree) {
@@ -57,27 +45,16 @@ class FSMerge {
     let self = this;
     this.fs = new Proxy(nodefs, {
       get(target, propertyName) {
-        if(!WRITEOPERATION.has(propertyName)) {
-          if (READDIR.has(propertyName)) {
-            return function() {
-              let [relativePath] = arguments;
-              if (path.isAbsolute(relativePath) && relativePath.trim() != '/') {
-                return target[propertyName](...arguments);
-              }
-              return self[propertyName](...arguments);
-            }
-          } else if (self[propertyName] && !target[propertyName]) { // when fsMerger.fs.hasOwnProperty is accessed we shouldn't be hijacking it to self.hasOwnProperty
-            return function() {
-              return self[propertyName](...arguments);
-            }
-          } else if (typeof target[propertyName] !== 'function') {
-            return target[propertyName];
-          }
+        if(WHITELISTEDOPERATION.has(propertyName) || self[propertyName]) {
           return function() {
             let [relativePath] = arguments;
-            let { _dirList } = self;
-            let fullPath = relativePath;
             if (!path.isAbsolute(relativePath)) {
+              // if property is present in the FSMerge do not hijack it with fs operations
+              if (self[propertyName]) {
+                return self[propertyName](...arguments);
+              }
+              let { _dirList } = self;
+              let fullPath = relativePath;
               for (let i=0; i < _dirList.length; i++) {
                 let { root } = getRootAndPrefix(_dirList[i]);
                 let tempPath = root + '/' + relativePath;
@@ -85,12 +62,14 @@ class FSMerge {
                   fullPath = tempPath;
                 }
               }
+              arguments[0] = fullPath;
+              return target[propertyName](...arguments);
+            } else {
+              throw new Error(`Relative path is expected, path ${relativePath} is an absolute path. inputPath gets prefixed to the reltivePath provided.`);
             }
-            arguments[0] = fullPath;
-            return target[propertyName](...arguments);
           }
         } else {
-          throw new Error(`Operation ${propertyName} is a write operation, not allowed with FSMerger.fs`);
+          throw new Error(`Operation ${propertyName} is not allowed with FSMerger.fs. Whitelisted operations are ${Array.from(WHITELISTEDOPERATION).toString()}`);
         }
       }
     });
