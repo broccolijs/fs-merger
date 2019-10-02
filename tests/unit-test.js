@@ -153,28 +153,14 @@ describe('fs-reader', function () {
 
     });
 
-    describe('read / folder', function() {
+    describe('read ./ folder', function() {
       it('readdirsync', function() {
-        let content = fsMerger.fs.readdirSync('/');
+        let content = fsMerger.fs.readdirSync('./');
         expect(content).to.be.deep.equal([ 'a.txt', 'test-1', 'x.txt','c.txt', 'test-sub-1', 'test-sub-2', 'b.txt', 'd.txt']);
       });
       it('readdir', function(done) {
-        fsMerger.fs.readdir('/', function (err, content) {
+        fsMerger.fs.readdir('./', function (err, content) {
           expect(content).to.have.all.members([ 'a.txt', 'test-1', 'x.txt','c.txt', 'test-sub-1', 'test-sub-2', 'b.txt', 'd.txt']);
-          done();
-        });
-      });
-    });
-
-    describe('reading folder invalid folder will throw with absolute path', function() {
-      it('readdirsync', function() {
-        expect(() => {
-          fsMerger.fs.readdirSync('/sfsd')
-        }).throw(/ENOENT\: no such file or directory, scandir.*/);
-      });
-      it('readdir', function(done) {
-        fsMerger.fs.readdir('/sfsd', function (err) {
-          expect(err.message).to.be.contains(`ENOENT: no such file or directory, scandir`);
           done();
         });
       });
@@ -183,7 +169,7 @@ describe('fs-reader', function () {
     describe('reading folder invalid folder will throw', function() {
       it('readdirsync', function() {
         expect(() => {
-          fsMerger.fs.readdirSync('/sfsd')
+          fsMerger.fs.readdirSync('sfsd')
         }).throw(/ENOENT\: no such file or directory, scandir.*/);
       });
 
@@ -242,33 +228,16 @@ describe('fs-reader', function () {
       expect(content).to.be.true;
     });
 
-    it('hasOwnProperty works', function() {
-      debugger
-      let content = fsMerger.fs.hasOwnProperty('existsSync');
-      expect(content).to.be.true;
-    });
-
-    it('non function property works', function() {
-      expect(fsMerger.fs.F_OK).to.be.equal(fs.F_OK);
-    });
-
-    it('exists works', function(done) {
-      fsMerger.fs.exists('test-1', function (content) {
-        expect(content).to.be.true;
-        done();
-      });
-    });
-
-    it('absolute path works', function() {
-      let exist = fsMerger.fs.existsSync(`${__dirname}/../fixtures/test-1`);
-      expect(exist).to.be.true;
+    it('absolute path throws error', function() {
+      let filepath = `${__dirname}/../fixtures/test-1`;
+      expect( ()=>{fsMerger.fs.existsSync(filepath)}).to.throw(`Relative path is expected, path ${filepath} is an absolute path. inputPath gets prefixed to the reltivePath provided.`);
     });
 
     it('writeFileSync operation must throw error', function () {
       let fsMerger = new FSMerge(['fixtures/test-1']);
       expect(()=>{
         fsMerger.fs.writeFileSync('read.md', 'test');
-      }).to.throw(`Operation writeFileSync is a write operation, not allowed with FSMerger.fs`)
+      }).to.throw(`Operation writeFileSync is not allowed with FSMerger.fs. Whitelisted operations are readFileSync,existsSync,lstatSync,statSync,readdirSync`);
     });
   });
 
@@ -315,7 +284,7 @@ describe('fs-reader', function () {
 
     it('can read entries from fsMeger.fs as well', function () {
       fsMerger = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']).fs;
-      let fsEntries = fsMerger.entries();
+      let fsEntries = fsMerger.entries('./');
       let fileList = [];
       let walkList = ['a.txt', 'b.txt', 'c.txt', 'd.txt', 'test-1/', 'test-1/b.txt', 'test-sub-1/', 'test-sub-1/sub-b.txt', 'test-sub-1/sub-c.txt', 'test-sub-1/test-sub-sub-1/', 'test-sub-1/test-sub-sub-1/sub-sub-b.txt', 'test-sub-1/test-sub-sub-1/sub-sub-c.txt', 'test-sub-2/' ,'x.txt'];
       fsEntries.forEach(entry => {
