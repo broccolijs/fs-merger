@@ -237,7 +237,7 @@ describe('fs-reader', function () {
       let fsMerger = new FSMerge(['fixtures/test-1']);
       expect(()=>{
         fsMerger.fs.writeFileSync('read.md', 'test');
-      }).to.throw(`Operation writeFileSync is not allowed with FSMerger.fs. Whitelisted operations are readFileSync,existsSync,lstatSync,statSync,readdirSync`);
+      }).to.throw(`Operation writeFileSync is not allowed with FSMerger.fs. Allowed operations are readFileSync,existsSync,lstatSync,statSync,readdirSync,readDir,readFileMeta,entries`);
     });
   });
 
