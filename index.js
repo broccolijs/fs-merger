@@ -8,7 +8,10 @@ const WHITELISTEDOPERATION = new Set([
   'existsSync',
   'lstatSync',
   'statSync',
-  'readdirSync'
+  'readdirSync',
+  'readDir',
+  'readFileMeta',
+  'entries'
 ]);
 
 function getRootAndPrefix(tree) {
@@ -39,37 +42,38 @@ function getValues(object) {
   }
 }
 
+function handleOperation({ target, propertyName }, relativePath, ...fsArguments) {
+  if (!path.isAbsolute(relativePath)) {
+    // if property is present in the FSMerge do not hijack it with fs operations
+    if (this[propertyName]) {
+      return this[propertyName](relativePath, ...fsArguments);
+    }
+    let { _dirList } = this;
+    let fullPath = relativePath;
+    for (let i=0; i < _dirList.length; i++) {
+      let { root } = getRootAndPrefix(_dirList[i]);
+      let tempPath = root + '/' + relativePath;
+      if(fs.existsSync(tempPath)) {
+        fullPath = tempPath;
+      }
+    }
+    return target[propertyName](fullPath, ...fsArguments);
+  } else {
+    throw new Error(`Relative path is expected, path ${relativePath} is an absolute path. inputPath gets prefixed to the reltivePath provided.`);
+  }
+}
+
 class FSMerge {
   constructor(trees) {
     this._dirList = Array.isArray(trees) ? trees : [trees];
+    this.MAP = {};
     let self = this;
     this.fs = new Proxy(nodefs, {
       get(target, propertyName) {
         if(WHITELISTEDOPERATION.has(propertyName) || self[propertyName]) {
-          return function() {
-            let [relativePath] = arguments;
-            if (!path.isAbsolute(relativePath)) {
-              // if property is present in the FSMerge do not hijack it with fs operations
-              if (self[propertyName]) {
-                return self[propertyName](...arguments);
-              }
-              let { _dirList } = self;
-              let fullPath = relativePath;
-              for (let i=0; i < _dirList.length; i++) {
-                let { root } = getRootAndPrefix(_dirList[i]);
-                let tempPath = root + '/' + relativePath;
-                if(fs.existsSync(tempPath)) {
-                  fullPath = tempPath;
-                }
-              }
-              arguments[0] = fullPath;
-              return target[propertyName](...arguments);
-            } else {
-              throw new Error(`Relative path is expected, path ${relativePath} is an absolute path. inputPath gets prefixed to the reltivePath provided.`);
-            }
-          }
+          return handleOperation.bind(self, {target, propertyName})
         } else {
-          throw new Error(`Operation ${propertyName} is not allowed with FSMerger.fs. Whitelisted operations are ${Array.from(WHITELISTEDOPERATION).toString()}`);
+          throw new Error(`Operation ${propertyName} is not allowed with FSMerger.fs. Allowed operations are ${Array.from(WHITELISTEDOPERATION).toString()}`);
         }
       }
     });
