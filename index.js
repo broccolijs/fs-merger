@@ -50,7 +50,7 @@ function handleOperation({ target, propertyName }, relativePath, ...fsArguments)
     }
     let { _dirList } = this;
     let fullPath = relativePath;
-    for (let i=0; i < _dirList.length; i++) {
+    for (let i=_dirList.length-1; i > -1; i--) {
       let { root } = getRootAndPrefix(_dirList[i]);
       let tempPath = root + '/' + relativePath;
       if(fs.existsSync(tempPath)) {
@@ -81,15 +81,13 @@ class FSMerge {
 
   readFileSync(filePath, options) {
     let { _dirList } = this;
-    let result = null;
-    for (let i=0; i < _dirList.length; i++) {
+    for (let i=_dirList.length-1; i > -1; i--) {
       let { root } = getRootAndPrefix(_dirList[i]);
       let fullPath = root + '/' + filePath;
       if(fs.existsSync(fullPath)) {
-        result = fs.readFileSync(fullPath, options);
+        return fs.readFileSync(fullPath, options);
       }
     }
-    return result;
   }
 
   _generateMap() {
@@ -116,18 +114,11 @@ class FSMerge {
         getDestinationPath: getDestinationPath
       }
     }
-    for (let i=0; i < _dirList.length; i++) {
+    for (let i=_dirList.length-1; i > -1; i--) {
       let { root, prefix, getDestinationPath } = getRootAndPrefix(_dirList[i]);
-      if (basePath == root) {
-        return {
-          path: path.join(root, filePath),
-          prefix: prefix,
-          getDestinationPath: getDestinationPath
-        }
-      }
       let fullPath = path.join(root, filePath);
-      if(fs.existsSync(fullPath)) {
-        result = {
+      if (basePath == root || fs.existsSync(fullPath)) {
+        return {
           path: fullPath,
           prefix: prefix,
           getDestinationPath: getDestinationPath
