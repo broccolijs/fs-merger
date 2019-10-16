@@ -293,4 +293,17 @@ describe('fs-reader', function () {
       expect(fileList).to.be.deep.equal(walkList);
     });
   });
+
+  describe('at operation', function () {
+    let fsMerger = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
+    it('at works', function() {
+      let content = fsMerger.at(0);
+      expect(content instanceof FSMerge).to.be.true;
+    });
+    it('can access file contents', function() {
+      let indexMerger = fsMerger.at(0);
+      let content = indexMerger.readFileSync('a.txt', 'utf-8');
+      expect(content).to.be.equal('hello');
+    });
+  });
 });

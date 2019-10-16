@@ -67,6 +67,7 @@ class FSMerge {
   constructor(trees) {
     this._dirList = Array.isArray(trees) ? trees : [trees];
     this.MAP = {};
+    this._atList = [];
     let self = this;
     this.fs = new Proxy(nodefs, {
       get(target, propertyName) {
@@ -90,6 +91,13 @@ class FSMerge {
       }
     }
     return result;
+  }
+
+  at(index) {
+    if(!this._atList[index]) {
+      this._atList[index] = new FSMerge(this._dirList[index]);
+    }
+    return this._atList[index]
   }
 
   _generateMap() {
