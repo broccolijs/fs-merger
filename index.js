@@ -3,6 +3,8 @@ const fs = require('fs-extra');
 const walkSync = require('walk-sync');
 const path = require('path');
 const nodefs = require('fs');
+const broccoliNodeInfo = require('broccoli-node-info');
+
 const WHITELISTEDOPERATION = new Set([
   'readFileSync',
   'existsSync',
@@ -14,21 +16,22 @@ const WHITELISTEDOPERATION = new Set([
   'entries'
 ]);
 
-function getRootAndPrefix(tree) {
+function getRootAndPrefix(node) {
   let root = '';
   let prefix = '';
   let getDestinationPath = undefined;
-  if (typeof tree == 'string') {
-    root = tree;
-  } else if (tree.hasOwnProperty('_watched') && tree._directoryPath) {
-    root = tree.root || tree._directoryPath;
+  if (typeof node == 'string') {
+    root = node;
+  } else if(node.root) {
+    root = node.root;
   } else {
-    root = tree.root || tree.outputPath;
+    let { nodeType, sourceDirectory } = broccoliNodeInfo.getNodeInfo(node);
+    root = nodeType == 'source' ? sourceDirectory : node.outputPath;
   }
   return {
     root: path.normalize(root),
-    prefix: tree.prefix || prefix,
-    getDestinationPath: tree.getDestinationPath || getDestinationPath
+    prefix: node.prefix || prefix,
+    getDestinationPath: node.getDestinationPath || getDestinationPath
   }
 }
 
