@@ -43,6 +43,9 @@ function getValues(object) {
 }
 
 function handleOperation({ target, propertyName }, relativePath, ...fsArguments) {
+  if (!this.MAP) {
+    this._generateMap();
+  }
   if (!path.isAbsolute(relativePath)) {
     // if property is present in the FSMerge do not hijack it with fs operations
     if (this[propertyName]) {
@@ -51,7 +54,7 @@ function handleOperation({ target, propertyName }, relativePath, ...fsArguments)
     let { _dirList } = this;
     let fullPath = relativePath;
     for (let i=_dirList.length-1; i > -1; i--) {
-      let { root } = getRootAndPrefix(_dirList[i]);
+      let { root } = this.PREFIXINDEXMAP[i];
       let tempPath = root + '/' + relativePath;
       if(fs.existsSync(tempPath)) {
         fullPath = tempPath;
@@ -66,7 +69,8 @@ function handleOperation({ target, propertyName }, relativePath, ...fsArguments)
 class FSMerge {
   constructor(trees) {
     this._dirList = Array.isArray(trees) ? trees : [trees];
-    this.MAP = {};
+    this.MAP = null;
+    this.PREFIXINDEXMAP = {};
     this._atList = [];
     let self = this;
     this.fs = new Proxy(nodefs, {
@@ -81,9 +85,12 @@ class FSMerge {
   }
 
   readFileSync(filePath, options) {
+    if (!this.MAP) {
+      this._generateMap();
+    }
     let { _dirList } = this;
     for (let i=_dirList.length-1; i > -1; i--) {
-      let { root } = getRootAndPrefix(_dirList[i]);
+      let { root } = this.PREFIXINDEXMAP[i];
       let fullPath = root + '/' + filePath;
       if(fs.existsSync(fullPath)) {
         return fs.readFileSync(fullPath, options);
@@ -99,9 +106,10 @@ class FSMerge {
   }
 
   _generateMap() {
-    this.MAP = this._dirList.reduce(function(map, tree) {
+    this.MAP = this._dirList.reduce((map, tree, index) => {
       let parsedTree = getRootAndPrefix(tree);
       map[parsedTree.root] = parsedTree;
+      this.PREFIXINDEXMAP[index] = parsedTree;
       return map;
     }, {});
   }
@@ -123,7 +131,7 @@ class FSMerge {
       }
     }
     for (let i=_dirList.length-1; i > -1; i--) {
-      let { root, prefix, getDestinationPath } = getRootAndPrefix(_dirList[i]);
+      let { root, prefix, getDestinationPath } = this.PREFIXINDEXMAP[i];
       let fullPath = path.join(root, filePath);
       if (basePath == root || fs.existsSync(fullPath)) {
         return {
@@ -137,11 +145,14 @@ class FSMerge {
   }
 
   readdirSync(dirPath, options) {
+    if (!this.MAP) {
+      this._generateMap();
+    }
     let { _dirList } = this;
     let result = [], errorCount = 0;
     let fullDirPath = '';
     for (let i=0; i < _dirList.length; i++) {
-      let { root } = getRootAndPrefix(_dirList[i]);
+      let { root } = this.PREFIXINDEXMAP[i];
       fullDirPath = root + '/' + dirPath;
       fullDirPath = fullDirPath.replace(/(\/|\/\/)$/, '');
       if(fs.existsSync(fullDirPath)) {
@@ -157,12 +168,15 @@ class FSMerge {
   }
 
   readdir(dirPath, callback) {
+    if (!this.MAP) {
+      this._generateMap();
+    }
     let result = [];
     let { _dirList } = this;
     let fullDirPath = '';
     let existingPath = [];
     for (let i=0; i < _dirList.length; i++) {
-      let { root } = getRootAndPrefix(_dirList[i]);
+      let { root } = this.PREFIXINDEXMAP[i];
       fullDirPath = root + '/' + dirPath;
       fullDirPath = fullDirPath.replace(/(\/|\/\/)$/, '');
       if(fs.existsSync(fullDirPath)) {
@@ -190,11 +204,14 @@ class FSMerge {
   }
 
   entries(dirPath = '', options) {
+    if (!this.MAP) {
+      this._generateMap();
+    }
     let { _dirList } = this;
     let result = [];
     let hashStore = {};
     for (let i=0; i < _dirList.length; i++) {
-      let { root, prefix, getDestinationPath } = getRootAndPrefix(_dirList[i]);
+      let { root, prefix, getDestinationPath } = this.PREFIXINDEXMAP[i];
       if (!root) {
         throw new Error('FSMerger must be instatiated with string or BroccoliNode or Object with root');
       }
