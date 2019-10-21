@@ -10,11 +10,13 @@
     "test:debugger": "mocha --inspect-brk tests/unit-test.js"
   },
   "devDependencies": {
+    "broccoli-source": "^3.0.0",
     "chai": "^4.2.0",
     "fixturify": "^1.2.0",
     "mocha": "^6.1.4"
   },
   "dependencies": {
+    "broccoli-node-info": "^2.1.0",
     "fs-extra": "^8.0.1",
     "fs-tree-diff": "^2.0.1",
     "rimraf": "^2.6.3",

@@ -5,6 +5,7 @@ const fixturify = require('fixturify');
 const rm = require('rimraf').sync;
 const path = require('path');
 const fs = require('fs');
+const { WatchedDir, UnwatchedDir } = require('broccoli-source');
 
 describe('fs-reader', function () {
   before(function() {
@@ -73,9 +74,9 @@ describe('fs-reader', function () {
       root: 'fixtures/test-2',
       prefix: 'test-2',
       getDestinationPath: undefined
-    }, {
-      outputPath: 'fixtures/test-3'
-    }]);
+      },
+      new WatchedDir('fixtures/test-3')
+    ]);
     it('correct meta for string', function () {
       let meta = fs.readFileMeta('x.txt');
       expect(meta).to.eql({
@@ -95,7 +96,7 @@ describe('fs-reader', function () {
     it('correct meta for broccoli node', function () {
       let meta = fs.readFileMeta('d.txt')
       expect(meta).to.eql({
-        path: path.normalize('fixtures/test-3/d.txt'),
+        path: path.resolve('fixtures/test-3/d.txt'),
         prefix: '',
         getDestinationPath: undefined,
       })
@@ -103,7 +104,7 @@ describe('fs-reader', function () {
     it('correct meta when basePath is provided', function () {
       let meta = fs.readFileMeta('d.txt', { basePath: 'fixtures/test-3'})
       expect(meta).to.eql({
-        path: path.normalize('fixtures/test-3/d.txt'),
+        path: path.resolve('fixtures/test-3/d.txt'),
         prefix: '',
         getDestinationPath: undefined,
       })
@@ -111,7 +112,7 @@ describe('fs-reader', function () {
   });
 
   describe('Reads contents of the folder from location', function() {
-    let fsMerger = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
+    let fsMerger = new FSMerge(['fixtures/test-1', 'fixtures/test-2', new UnwatchedDir('fixtures/test-3')]);
 
     describe('read test-1 folder', function() {
       it('readdirSync', function() {
