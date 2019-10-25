@@ -1,6 +1,6 @@
 "use strict";
 const expect = require("chai").expect;
-const FSMerge = require('../index');
+import FSMerge from '../src/index';
 const fixturify = require('fixturify');
 const rm = require('rimraf').sync;
 const path = require('path');
@@ -238,7 +238,7 @@ describe('fs-reader', function () {
       let fsMerger = new FSMerge(['fixtures/test-1']);
       expect(()=>{
         fsMerger.fs.writeFileSync('read.md', 'test');
-      }).to.throw(`Operation writeFileSync is not allowed with FSMerger.fs. Allowed operations are readFileSync,existsSync,lstatSync,statSync,readdirSync,readDir,readFileMeta,entries`);
+      }).to.throw(`Operation writeFileSync is not allowed with FSMerger.fs. Allowed operations are readFileSync,existsSync,lstatSync,statSync,readdirSync,readdir,readFileMeta,entries`);
     });
   });
 
