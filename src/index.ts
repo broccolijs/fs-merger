@@ -1,9 +1,18 @@
 "use strict";
+
 const fs = require('fs-extra');
-const walkSync = require('walk-sync');
 const path = require('path');
 const nodefs = require('fs');
 const broccoliNodeInfo = require('broccoli-node-info');
+import {
+  FSMergerObject,
+  Node,
+  FileMeta,
+  FileMetaOption,
+  FileContent,
+  FSMergerFileOperations
+} from './interface';
+import { entries, Options, Entry } from 'walk-sync';
 
 const WHITELISTEDOPERATION = new Set([
   'readFileSync',
@@ -11,12 +20,12 @@ const WHITELISTEDOPERATION = new Set([
   'lstatSync',
   'statSync',
   'readdirSync',
-  'readDir',
+  'readdir',
   'readFileMeta',
   'entries'
 ]);
 
-function getRootAndPrefix(node) {
+function getRootAndPrefix(node: any): FSMergerObject {
   let root = '';
   let prefix = '';
   let getDestinationPath = undefined;
@@ -35,7 +44,7 @@ function getRootAndPrefix(node) {
   }
 }
 
-function getValues(object) {
+function getValues(object: {[key:string]: any}) {
   if (Object.values) {
     return Object.values(object);
   } else {
@@ -45,7 +54,10 @@ function getValues(object) {
   }
 }
 
-function handleOperation({ target, propertyName }, relativePath, ...fsArguments) {
+function handleOperation(this: FSMerge & {[key: string]: any}, { target, propertyName }: {
+    target: {[key: string]: any};
+    propertyName: string;
+  }, relativePath: string, ...fsArguments: any[]) {
   if (!this.MAP) {
     this._generateMap();
   }
@@ -70,14 +82,20 @@ function handleOperation({ target, propertyName }, relativePath, ...fsArguments)
 }
 
 class FSMerge {
-  constructor(trees) {
+  _dirList: Node[];
+  MAP: { [key: string]: FSMergerObject } | null;
+  PREFIXINDEXMAP: { [key: number]: FSMergerObject };
+  _atList: FSMerge[];
+  fs: FSMergerFileOperations
+
+  constructor(trees: Node[] | Node) {
     this._dirList = Array.isArray(trees) ? trees : [trees];
     this.MAP = null;
     this.PREFIXINDEXMAP = {};
     this._atList = [];
-    let self = this;
+    let self: FSMerge & {[key: string]: any} = this;
     this.fs = new Proxy(nodefs, {
-      get(target, propertyName) {
+      get(target, propertyName: string) {
         if(WHITELISTEDOPERATION.has(propertyName) || self[propertyName]) {
           return handleOperation.bind(self, {target, propertyName})
         } else {
@@ -87,7 +105,7 @@ class FSMerge {
     });
   }
 
-  readFileSync(filePath, options) {
+  readFileSync(filePath:string, options?: { encoding?: string | null; flag?: string; } | string | null): FileContent | undefined {
     if (!this.MAP) {
       this._generateMap();
     }
@@ -101,31 +119,30 @@ class FSMerge {
     }
   }
 
-  at(index) {
+  at(index: number): FSMerge {
     if(!this._atList[index]) {
       this._atList[index] = new FSMerge(this._dirList[index]);
     }
     return this._atList[index]
   }
 
-  _generateMap() {
-    this.MAP = this._dirList.reduce((map, tree, index) => {
-      let parsedTree = getRootAndPrefix(tree);
+  _generateMap(): void {
+    this.MAP = this._dirList.reduce((map:{ [key: string]: FSMergerObject }, tree: Node, index: number) => {
+      let parsedTree: FSMergerObject = getRootAndPrefix(tree);
       map[parsedTree.root] = parsedTree;
       this.PREFIXINDEXMAP[index] = parsedTree;
       return map;
     }, {});
   }
 
-  readFileMeta(filePath, options) {
+  readFileMeta (filePath: string, options: FileMetaOption): FileMeta | undefined {
     if (!this.MAP) {
       this._generateMap();
     }
     let { _dirList } = this;
-    let result = null;
-    let { basePath } = options || {};
+    let { basePath = '' } = options || {};
     basePath = basePath && path.normalize(basePath);
-    if (this.MAP[basePath]) {
+    if (this.MAP && this.MAP[basePath]) {
       let { root, prefix, getDestinationPath } = this.MAP[basePath];
       return {
         path: path.join(root, filePath),
@@ -144,15 +161,14 @@ class FSMerge {
         };
       }
     }
-    return result;
   }
 
-  readdirSync(dirPath, options) {
+  readdirSync(dirPath: string, options?: { encoding?: string | null; withFileTypes?: false } | string | null): string[] | Buffer[] {
     if (!this.MAP) {
       this._generateMap();
     }
     let { _dirList } = this;
-    let result = [], errorCount = 0;
+    let result: string[] = [], errorCount = 0;
     let fullDirPath = '';
     for (let i=0; i < _dirList.length; i++) {
       let { root } = this.PREFIXINDEXMAP[i];
@@ -170,11 +186,19 @@ class FSMerge {
     return [...new Set(result)];
   }
 
-  readdir(dirPath, callback) {
+  readdir(dirPath: string,
+    options: { encoding?: string | null; withFileTypes?: false } | string | undefined | null,
+    callback: (err: NodeJS.ErrnoException | null, files: string[] | Buffer[]) => void): void
+  {
     if (!this.MAP) {
       this._generateMap();
     }
-    let result = [];
+
+    if (typeof options === 'function') {
+      callback = options;
+      options = 'utf-8';
+    }
+    let result: string[] = [];
     let { _dirList } = this;
     let fullDirPath = '';
     let existingPath = [];
@@ -187,15 +211,16 @@ class FSMerge {
       }
     }
     if (!existingPath.length) {
-      fs.readdir(fullDirPath, callback);
+      fs.readdir(fullDirPath, options, callback);
     }
     let readComplete = 0;
     for (let i = 0; i < existingPath.length; i++) {
-      fs.readdir(existingPath[i], (err, list) => {
+      fs.readdir(existingPath[i], options, (err: NodeJS.ErrnoException | null , list: string[]) => {
         readComplete += 1;
-        result.push.apply(result, list);
+        result && result.push.apply(result, list);
         if (readComplete == existingPath.length || err) {
           if (err) {
+            // @ts-ignore
             result = undefined;
           } else {
             result = [...new Set(result)];
@@ -206,12 +231,12 @@ class FSMerge {
     }
   }
 
-  entries(dirPath = '', options) {
+  entries(dirPath: string = '', options: Options): Entry[] {
     if (!this.MAP) {
       this._generateMap();
     }
     let { _dirList } = this;
-    let result = [];
+    let result: Entry[] = [];
     let hashStore = {};
     for (let i=0; i < _dirList.length; i++) {
       let { root, prefix, getDestinationPath } = this.PREFIXINDEXMAP[i];
@@ -221,9 +246,9 @@ class FSMerge {
       let fullDirPath = dirPath ? root + '/' + dirPath : root;
       fullDirPath = fullDirPath.replace(/(\/|\/\/)$/, '');
       if(fs.existsSync(fullDirPath)) {
-        let curEntryList = walkSync.entries(fullDirPath, options);
-        hashStore = curEntryList.reduce((hashStoreAccumulated, entry) => {
-          let relativePath = getDestinationPath ? getDestinationPath(entry.relativePath) : entry.relativePath;
+        let curEntryList = entries(fullDirPath, options);
+        hashStore = curEntryList.reduce((hashStoreAccumulated: {[key: string]: Entry}, entry: Entry) => {
+          let relativePath:string = getDestinationPath ? getDestinationPath(entry.relativePath) : entry.relativePath;
           relativePath = prefix ? path.join(prefix, relativePath) : relativePath;
           hashStoreAccumulated[relativePath] = entry;
           return hashStoreAccumulated;
@@ -236,4 +261,4 @@ class FSMerge {
   }
 }
 
-module.exports = FSMerge;
+export default FSMerge;
