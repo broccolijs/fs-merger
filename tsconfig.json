@@ -7,11 +7,11 @@
       "sourceMap": true,
       "target": "es2017",
       "baseUrl": ".",
-      "allowJs": true,
+      "declaration": true,
       "strict": true
   },
   "include": [
-      "src/index.ts"
+      "src"
   ]
 
 }

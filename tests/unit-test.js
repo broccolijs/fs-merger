@@ -1,6 +1,6 @@
 "use strict";
 const expect = require("chai").expect;
-import FSMerge from '../src/index';
+const FSMerge = require('../dist/index');
 const fixturify = require('fixturify');
 const rm = require('rimraf').sync;
 const path = require('path');
