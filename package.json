@@ -1,15 +1,15 @@
 {
   "name": "fs-merger",
-  "version": "2.1.0",
+  "version": "2.1.2",
   "description": "Reads files from a real location",
   "main": "dist/index.js",
-  "types": "src/index.ts",
+  "types": "dist/index.d.ts",
   "author": "Sparshith NR",
   "license": "MIT",
   "scripts": {
     "build": "tsc",
     "clean": "rm -rf dist",
-    "test": "yarn build && mocha tests/unit-test.js -r ts-node/register",
+    "test": "yarn clean && yarn build && mocha tests/unit-test.js -r ts-node/register",
     "test:debugger": "yarn build && mocha --inspect-brk tests/unit-test.js -r ts-node/register"
   },
   "devDependencies": {
@@ -28,8 +28,5 @@
     "fs-tree-diff": "^2.0.1",
     "rimraf": "^2.6.3",
     "walk-sync": "^2.0.2"
-  },
-  "files": [
-    "dist"
-  ]
+  }
 }

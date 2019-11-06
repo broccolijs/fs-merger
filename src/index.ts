@@ -5,13 +5,18 @@ const path = require('path');
 const nodefs = require('fs');
 const broccoliNodeInfo = require('broccoli-node-info');
 import {
-  FSMergerObject,
-  Node,
-  FileMeta,
-  FileMetaOption,
-  FileContent,
-  FSMergerFileOperations
-} from './interface';
+  InputNode
+} from 'broccoli-node-api';
+
+import {
+  readFileSync,
+  existsSync,
+  lstatSync,
+  statSync,
+  readdirSync,
+  readdir
+} from 'fs';
+
 import { entries, Options, Entry } from 'walk-sync';
 
 const WHITELISTEDOPERATION = new Set([
@@ -25,7 +30,7 @@ const WHITELISTEDOPERATION = new Set([
   'entries'
 ]);
 
-function getRootAndPrefix(node: any): FSMergerObject {
+function getRootAndPrefix(node: any): FSMerger.FSMergerObject {
   let root = '';
   let prefix = '';
   let getDestinationPath = undefined;
@@ -54,7 +59,7 @@ function getValues(object: {[key:string]: any}) {
   }
 }
 
-function handleOperation(this: FSMerge & {[key: string]: any}, { target, propertyName }: {
+function handleOperation(this: FSMerger & {[key: string]: any}, { target, propertyName }: {
     target: {[key: string]: any};
     propertyName: string;
   }, relativePath: string, ...fsArguments: any[]) {
@@ -81,19 +86,19 @@ function handleOperation(this: FSMerge & {[key: string]: any}, { target, propert
   }
 }
 
-class FSMerge {
-  _dirList: Node[];
-  MAP: { [key: string]: FSMergerObject } | null;
-  PREFIXINDEXMAP: { [key: number]: FSMergerObject };
-  _atList: FSMerge[];
-  fs: FSMergerFileOperations
+class FSMerger {
+  _dirList: FSMerger.Node[];
+  MAP: { [key: string]: FSMerger.FSMergerObject } | null;
+  PREFIXINDEXMAP: { [key: number]: FSMerger.FSMergerObject };
+  _atList: FSMerger[];
+  fs: FSMerger.FSMergerFileOperations
 
-  constructor(trees: Node[] | Node) {
+  constructor(trees: FSMerger.Node[] | FSMerger.Node) {
     this._dirList = Array.isArray(trees) ? trees : [trees];
     this.MAP = null;
     this.PREFIXINDEXMAP = {};
     this._atList = [];
-    let self: FSMerge & {[key: string]: any} = this;
+    let self: FSMerger & {[key: string]: any} = this;
     this.fs = new Proxy(nodefs, {
       get(target, propertyName: string) {
         if(WHITELISTEDOPERATION.has(propertyName) || self[propertyName]) {
@@ -105,7 +110,7 @@ class FSMerge {
     });
   }
 
-  readFileSync(filePath:string, options?: { encoding?: string | null; flag?: string; } | string | null): FileContent | undefined {
+  readFileSync(filePath:string, options?: { encoding?: string | null; flag?: string; } | string | null): FSMerger.FileContent | undefined {
     if (!this.MAP) {
       this._generateMap();
     }
@@ -119,23 +124,23 @@ class FSMerge {
     }
   }
 
-  at(index: number): FSMerge {
+  at(index: number): FSMerger {
     if(!this._atList[index]) {
-      this._atList[index] = new FSMerge(this._dirList[index]);
+      this._atList[index] = new FSMerger(this._dirList[index]);
     }
     return this._atList[index]
   }
 
   _generateMap(): void {
-    this.MAP = this._dirList.reduce((map:{ [key: string]: FSMergerObject }, tree: Node, index: number) => {
-      let parsedTree: FSMergerObject = getRootAndPrefix(tree);
+    this.MAP = this._dirList.reduce((map:{ [key: string]: FSMerger.FSMergerObject }, tree: FSMerger.Node, index: number) => {
+      let parsedTree: FSMerger.FSMergerObject = getRootAndPrefix(tree);
       map[parsedTree.root] = parsedTree;
       this.PREFIXINDEXMAP[index] = parsedTree;
       return map;
     }, {});
   }
 
-  readFileMeta (filePath: string, options: FileMetaOption): FileMeta | undefined {
+  readFileMeta (filePath: string, options?: FSMerger.FileMetaOption): FSMerger.FileMeta | undefined {
     if (!this.MAP) {
       this._generateMap();
     }
@@ -231,7 +236,7 @@ class FSMerge {
     }
   }
 
-  entries(dirPath: string = '', options: Options): Entry[] {
+  entries(dirPath: string = '', options?: Options): Entry[] {
     if (!this.MAP) {
       this._generateMap();
     }
@@ -261,4 +266,39 @@ class FSMerge {
   }
 }
 
-export default FSMerge;
+export = FSMerger;
+namespace FSMerger {
+  export interface FSMergerFileOperations extends FSMerger {
+    existsSync: typeof existsSync,
+    lstatSync: typeof lstatSync,
+    statSync: typeof statSync,
+  }
+
+  export type FSMergerObject = {
+    root: string;
+    prefix: string | undefined;
+    getDestinationPath: Function | undefined
+  }
+
+  export type FileContent = string | Buffer | null;
+
+  export type FileMeta = {
+    path: string;
+    prefix: string | undefined;
+    getDestinationPath: Function | undefined
+  }
+
+  export type FileMetaOption = {
+    basePath: string
+  }
+  export type Node = FSMergerObject | InputNode;
+
+  interface FSMerger {
+    readFileSync: typeof readFileSync,
+    readdirSync: typeof readdirSync,
+    readdir: typeof readdir,
+    at(index:number): FSMerger,
+    readFileMeta(filePath: string, options: FileMetaOption): FileMeta,
+    entries: typeof entries
+  }
+}
