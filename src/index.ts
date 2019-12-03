@@ -91,7 +91,7 @@ class FSMerger {
   MAP: { [key: string]: FSMerger.FSMergerObject } | null;
   PREFIXINDEXMAP: { [key: number]: FSMerger.FSMergerObject };
   _atList: FSMerger[];
-  fs: FSMerger.FSMergerFileOperations
+  fs: FSMerger.FS
 
   constructor(trees: FSMerger.Node[] | FSMerger.Node) {
     this._dirList = Array.isArray(trees) ? trees : [trees];
@@ -268,7 +268,7 @@ class FSMerger {
 
 export = FSMerger;
 namespace FSMerger {
-  export interface FSMergerFileOperations extends FSMerger {
+  export interface FS extends FSMerger {
     existsSync: typeof existsSync,
     lstatSync: typeof lstatSync,
     statSync: typeof statSync,
