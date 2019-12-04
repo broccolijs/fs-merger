@@ -163,3 +163,86 @@ module.exports = new TestFilter([FSMergerObjectWithPrefix, FSMergerObjectWithFil
 ```
 
 This new library helped in removing two funnels which where used only for the sake of renaming at the output of persitent filter and mergeTree was performed because persitent filter was restricted to accept only one inputNode.
+
+## FSMerger.fs
+
+`FSMerge.fs` is a proxy for the file operations and few whitelisted fsmerger operations
+
+Following are the operation which `FSMerger.fs` supports
+
+All these are standard `fs` operations. Refer node guide for [file handling](https://nodejs.org/api/fs.html)
+* readFileSync
+* existsSync
+* lstatSync
+* statSync
+* readdirSync
+* readdir
+
+Following are specfic to `FSMerger`
+* readFileMeta
+
+Reads the filemeta passed down while creating the new FSMerger instance for a specific root.
+Ex:
+```js
+/*
+fixture
+    |
+    -- docs
+        |
+        -- c.txt
+        -- d.txt
+*/
+let FSMergerObjectWithPrefix = {
+    root: 'fixture/docs',
+    prefix: 'documents'
+}
+let FSMerge = require('fs-merger');
+let fsmerge = new FSMerge([FSMergerObjectWithPrefix]);
+let filemeta = fsmerge.fs.readFileMeta('c.txt');
+/*
+filemeta will look something like this
+{
+  path: 'fixture/docs/c.txt',
+  prefix: 'document'
+  getDestinationPath: undefined
+}
+*/
+
+```
+* at
+
+This function is used to retrive file from a specfic input path (or root) directory. This function can used when we have same filename in mulitple inputPaths and we want spicific inputPath
+ex:
+```js
+let FSMerge = require('fs-merger');
+let fsmerge = new FSMerge(['test-1', 'test-2', 'test-3']);
+/* test-1
+    |
+    -- a.txt
+    -- b.txt
+
+    test-2
+    |
+    -- c.txt
+    -- d.txt
+    -- sub-dir
+        |
+        -- x.txt
+        -- y.txt
+
+    test-3
+    |
+    -- e.txt
+    -- a.txt
+ */
+ let contentA = fs.readFileSync('a.txt'); // content of test-3/a.txt; here we merge left to right, duplicate files are overwritten
+ let contentB = fsmerge.fs.at(0).readFileSync('a.txt'); // content of test-1/a.txt
+ let contentC = fsmerge.fs.at(2).readFileSync('a.txt'); // content of test-3/a.txt; here we merge left to right, duplicate files are overwritten
+ let contentSubDir = fsmerge.fs.at(1).readFileSync('sub-dir/x.txt'); //content of test-2/sub-dir/x.txt
+ ```
+
+
+* entries
+
+`entries` performs same functionality as in `walk-sync`. Refer the `walk-sync` [guide here](https://github.com/joliss/node-walk-sync#entries).
+

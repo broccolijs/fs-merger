@@ -27,7 +27,8 @@ const WHITELISTEDOPERATION = new Set([
   'readdirSync',
   'readdir',
   'readFileMeta',
-  'entries'
+  'entries',
+  'at'
 ]);
 
 function getRootAndPrefix(node: any): FSMerger.FSMergerObject {
@@ -66,7 +67,9 @@ function handleOperation(this: FSMerger & {[key: string]: any}, { target, proper
   if (!this.MAP) {
     this._generateMap();
   }
-  if (!path.isAbsolute(relativePath)) {
+
+  // at is a spcfical property exist in FSMerge which takes number as input do not perform path operation on it.
+  if (propertyName == 'at' || !path.isAbsolute(relativePath)) {
     // if property is present in the FSMerge do not hijack it with fs operations
     if (this[propertyName]) {
       return this[propertyName](relativePath, ...fsArguments);
@@ -101,7 +104,7 @@ class FSMerger {
     let self: FSMerger & {[key: string]: any} = this;
     this.fs = new Proxy(nodefs, {
       get(target, propertyName: string) {
-        if(WHITELISTEDOPERATION.has(propertyName) || self[propertyName]) {
+        if(WHITELISTEDOPERATION.has(propertyName)) {
           return handleOperation.bind(self, {target, propertyName})
         } else {
           throw new Error(`Operation ${propertyName} is not allowed with FSMerger.fs. Allowed operations are ${Array.from(WHITELISTEDOPERATION).toString()}`);

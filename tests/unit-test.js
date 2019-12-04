@@ -238,7 +238,21 @@ describe('fs-reader', function () {
       let fsMerger = new FSMerge(['fixtures/test-1']);
       expect(()=>{
         fsMerger.fs.writeFileSync('read.md', 'test');
-      }).to.throw(`Operation writeFileSync is not allowed with FSMerger.fs. Allowed operations are readFileSync,existsSync,lstatSync,statSync,readdirSync,readdir,readFileMeta,entries`);
+      }).to.throw(`Operation writeFileSync is not allowed with FSMerger.fs. Allowed operations are readFileSync,existsSync,lstatSync,statSync,readdirSync,readdir,readFileMeta,entries,at`);
+    });
+
+    it('acessing FSMerger non whitelisted operation must throw error', function () {
+      let fsMerger = new FSMerge(['fixtures/test-1']);
+      expect(()=>{
+        fsMerger.fs._generateMap();
+      }).to.throw(`Operation _generateMap is not allowed with FSMerger.fs. Allowed operations are readFileSync,existsSync,lstatSync,statSync,readdirSync,readdir,readFileMeta,entries,at`);
+    });
+
+    it('acessing FSMerger non whitelisted properties must throw error', function () {
+      let fsMerger = new FSMerge(['fixtures/test-1']);
+      expect(()=>{
+        fsMerger.fs._dirList;
+      }).to.throw(`Operation _dirList is not allowed with FSMerger.fs. Allowed operations are readFileSync,existsSync,lstatSync,statSync,readdirSync,readdir,readFileMeta,entries,at`);
     });
   });
 
@@ -303,6 +317,11 @@ describe('fs-reader', function () {
     });
     it('can access file contents', function() {
       let indexMerger = fsMerger.at(0);
+      let content = indexMerger.readFileSync('a.txt', 'utf-8');
+      expect(content).to.be.equal('hello');
+    });
+    it('can access file contents using fs proxy', function() {
+      let indexMerger = fsMerger.fs.at(0);
       let content = indexMerger.readFileSync('a.txt', 'utf-8');
       expect(content).to.be.equal('hello');
     });
