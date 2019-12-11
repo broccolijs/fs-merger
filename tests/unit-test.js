@@ -229,9 +229,16 @@ describe('fs-reader', function () {
       expect(content).to.be.true;
     });
 
-    it('absolute path throws error', function() {
+    it('absolute path is accepted', function() {
       let filepath = `${__dirname}/../fixtures/test-1`;
-      expect( ()=>{fsMerger.fs.existsSync(filepath)}).to.throw(`Relative path is expected, path ${filepath} is an absolute path. inputPath gets prefixed to the reltivePath provided.`);
+      expect(fsMerger.fs.existsSync(filepath)).to.be.true;
+    });
+
+    it('absolute path is accepted only with allowed operations', function() {
+      let filepath = `${__dirname}/../fixtures/test-1`;
+      expect(()=>{
+        fsMerger.fs.rmdirSync(filepath);
+      }).to.throw(`Operation rmdirSync is not allowed with FSMerger.fs. Allowed operations are readFileSync,existsSync,lstatSync,statSync,readdirSync,readdir,readFileMeta,entries,at`);
     });
 
     it('writeFileSync operation must throw error', function () {

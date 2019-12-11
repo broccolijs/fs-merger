@@ -67,6 +67,7 @@ function handleOperation(this: FSMerger & {[key: string]: any}, { target, proper
   if (!this.MAP) {
     this._generateMap();
   }
+  let fullPath = relativePath
 
   // at is a spcfical property exist in FSMerge which takes number as input do not perform path operation on it.
   if (propertyName == 'at' || !path.isAbsolute(relativePath)) {
@@ -75,7 +76,6 @@ function handleOperation(this: FSMerger & {[key: string]: any}, { target, proper
       return this[propertyName](relativePath, ...fsArguments);
     }
     let { _dirList } = this;
-    let fullPath = relativePath;
     for (let i=_dirList.length-1; i > -1; i--) {
       let { root } = this.PREFIXINDEXMAP[i];
       let tempPath = root + '/' + relativePath;
@@ -83,10 +83,8 @@ function handleOperation(this: FSMerger & {[key: string]: any}, { target, proper
         fullPath = tempPath;
       }
     }
-    return target[propertyName](fullPath, ...fsArguments);
-  } else {
-    throw new Error(`Relative path is expected, path ${relativePath} is an absolute path. inputPath gets prefixed to the reltivePath provided.`);
   }
+  return target[propertyName](fullPath, ...fsArguments);
 }
 
 class FSMerger {
