@@ -28,7 +28,8 @@ const WHITELISTEDOPERATION = new Set([
   'readdir',
   'readFileMeta',
   'entries',
-  'at'
+  'at',
+  'getRoot'
 ]);
 
 function getRootAndPrefix(node: any): FSMerger.FSMergerObject {
@@ -70,7 +71,7 @@ function handleOperation(this: FSMerger & {[key: string]: any}, { target, proper
   let fullPath = relativePath
 
   // at is a spcfical property exist in FSMerge which takes number as input do not perform path operation on it.
-  if (propertyName == 'at' || !path.isAbsolute(relativePath)) {
+  if (propertyName == 'at' || propertyName == 'getRoot' || !path.isAbsolute(relativePath)) {
     // if property is present in the FSMerge do not hijack it with fs operations
     if (this[propertyName]) {
       return this[propertyName](relativePath, ...fsArguments);
@@ -264,6 +265,23 @@ class FSMerger {
     result = getValues(hashStore);
     result.sort((entryA, entryB) => (entryA.relativePath > entryB.relativePath) ? 1 : -1);
     return result;
+  }
+
+  getRoot(filePath: string): string | undefined {
+    if (!this.MAP) {
+      this._generateMap();
+    }
+    for (let i = this._dirList.length - 1; i >= 0; i--) {
+      let { root } = this.PREFIXINDEXMAP[i];
+      filePath = path.normalize(filePath);
+      let regEx = new RegExp(`${path.normalize(root)}(\/|\s?$)`);
+      let startsWith = regEx.test(filePath);
+      if (startsWith) {
+        return root;
+      } else if(!path.isAbsolute(filePath) && fs.existsSync(path.resolve(root, filePath))){
+        return root;
+      }
+    }
   }
 }
 
