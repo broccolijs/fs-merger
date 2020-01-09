@@ -333,4 +333,31 @@ describe('fs-reader', function () {
       expect(content).to.be.equal('hello');
     });
   });
+  describe('getRoot', function () {
+    let fsMerger = new FSMerge(['fixtures/test-1', 'fixtures/test-2', path.resolve('fixtures/test-3')]);
+    it('returns valid root', function() {
+      let content = fsMerger.getRoot('fixtures/test-1/tester');
+      expect(content).to.be.equal('fixtures/test-1');
+    });
+    it('matches if relative path is not found directly', function() {
+      let content = fsMerger.getRoot('test-sub-1');
+      expect(content).to.be.equal(path.resolve('fixtures/test-3'));
+    });
+    it('undefined if no match', function() {
+      let content = fsMerger.getRoot('test-sub-10');
+      expect(content).to.be.undefined;
+    });
+    it('partial match shouldnt return root', function() {
+      let content = fsMerger.getRoot('fixtures/test-12/tester');
+      expect(content).to.be.undefined;
+      content = fsMerger.getRoot('fixtures/test/12/tester');
+      expect(content).to.be.undefined;
+      content = fsMerger.getRoot('fixtures/test-12');
+      expect(content).to.be.undefined;
+    });
+    it('matches absolute path', function() {
+      let content = fsMerger.getRoot(path.resolve('fixtures/test-3/test-sub-1'));
+      expect(content).to.be.equal(path.resolve('fixtures/test-3'));
+    });
+  });
 });
