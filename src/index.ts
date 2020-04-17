@@ -68,9 +68,21 @@ function handleOperation(this: FSMerger & {[key: string]: any}, { target, proper
     this._generateMap();
   }
   let fullPath = relativePath
+  let byPassAbsPathCheck = false;
+  switch (propertyName) {
+    case 'at':
+      byPassAbsPathCheck = true;
+      break;
+
+    case 'entries':
+      if (!relativePath) {
+        byPassAbsPathCheck = true;
+      }
+      break;
+  }
 
   // at is a spcfical property exist in FSMerge which takes number as input do not perform path operation on it.
-  if (propertyName == 'at' || !path.isAbsolute(relativePath)) {
+  if (byPassAbsPathCheck || !path.isAbsolute(relativePath)) {
     // if property is present in the FSMerge do not hijack it with fs operations
     if (this[propertyName]) {
       return this[propertyName](relativePath, ...fsArguments);
