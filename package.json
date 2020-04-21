@@ -12,6 +12,10 @@
     "test": "yarn clean && yarn build && mocha tests/unit-test.js -r ts-node/register",
     "test:debugger": "yarn build && mocha --inspect-brk tests/unit-test.js -r ts-node/register"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SparshithNR/fs-merger.git"
+  },
   "devDependencies": {
     "@types/node": "^12.11.5",
     "broccoli-source": "^3.0.0",
