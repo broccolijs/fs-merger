@@ -1,6 +1,6 @@
 {
   "name": "fs-merger",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "Reads files from a real location",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
