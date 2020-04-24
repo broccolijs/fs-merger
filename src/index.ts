@@ -135,6 +135,7 @@ class FSMerger {
         return fs.readFileSync(fullPath, options);
       }
     }
+    return fs.readdirSync(filePath, options);
   }
 
   at(index: number): FSMerger {
@@ -254,7 +255,7 @@ class FSMerger {
       this._generateMap();
     }
     let { _dirList } = this;
-    let result: Entry[] = [];
+    let result: Entry[] = [], errorCount = 0;;
     let hashStore = {};
     for (let i=0; i < _dirList.length; i++) {
       let { root, prefix, getDestinationPath } = this.PREFIXINDEXMAP[i];
@@ -271,8 +272,15 @@ class FSMerger {
           hashStoreAccumulated[relativePath] = entry;
           return hashStoreAccumulated;
         }, hashStore);
+      } else {
+        errorCount++;
       }
     }
+
+    if (errorCount === _dirList.length) {
+      return entries(dirPath);
+    }
+
     result = getValues(hashStore);
     result.sort((entryA, entryB) => (entryA.relativePath > entryB.relativePath) ? 1 : -1);
     return result;
