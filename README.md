@@ -242,7 +242,7 @@ let fsmerge = new FSMerge(['test-1', 'test-2', 'test-3']);
  ```
 
 
-* entries
+* `entries` - performs same functionality as in `walk-sync`. Refer the `walk-sync` [guide here](https://github.com/joliss/node-walk-sync#entries).
 
-`entries` performs same functionality as in `walk-sync`. Refer the `walk-sync` [guide here](https://github.com/joliss/node-walk-sync#entries).
-
+* `relativePathTo` - Converts an absolute path into a `relativePath` and an `at` index
+  suitable for use when calling the other FSMerger methods.

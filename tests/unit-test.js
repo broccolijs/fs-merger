@@ -355,4 +355,32 @@ describe('fs-reader', function () {
       expect(content).to.be.equal('hello');
     });
   });
+  describe('relativePathTo', function() {
+    let fsMerger = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
+    it('works', function() {
+      let { relativePath, at} = fsMerger.relativePathTo(path.resolve('fixtures/test-1/a.txt'));
+      expect(relativePath).to.eq('a.txt');
+      expect(at).to.eq(0);
+    });
+    it('works with files that do not exist', function() {
+      let { relativePath, at} = fsMerger.relativePathTo(path.resolve('fixtures/test-1/doesnotexist.txt'));
+      expect(relativePath).to.eq('doesnotexist.txt');
+      expect(at).to.eq(0);
+    });
+    it('does not get confused with directories that start the same', function() {
+      let result = fsMerger.relativePathTo(path.resolve('fixtures/test-1-more/foo.js'));
+      expect(result).to.be.null;
+    });
+    it('can be used to read the file', function() {
+      let { relativePath, at} = fsMerger.relativePathTo(path.resolve('fixtures/test-3/b.txt'));
+      let specificFS = fsMerger.at(at);
+      let result = specificFS.readFileSync(relativePath, 'utf8');
+      expect(result).to.eq('This is file which is same as test-1/test-1/b.txt');
+    });
+    it('requires an absolute path', function() {
+      expect(() => {
+        fsMerger.relativePathTo('fixtures/test-3/b.txt');
+      }).to.throw('relativePathTo expects an absolute path: fixtures/test-3/b.txt');
+    });
+  });
 });
