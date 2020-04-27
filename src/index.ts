@@ -242,7 +242,7 @@ class FSMerger {
     if (errorCount == _dirList.length) {
       fs.readdirSync(fullDirPath);
     }
-    return [...new Set(result)];
+    return [...result];
   }
 
   readdir(dirPath: string,
