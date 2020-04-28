@@ -57,18 +57,20 @@ describe('fs-reader', function () {
       expect(content).to.be.equal('this is new file');
     });
     it('test-1/b.txt', function () {
-      let content = fsMerger.fs.readFileSync('c.txt', 'utf-8');
-      expect(content).to.be.equal('this is new file');
-    });
-    it('test-1/b.txt', function () {
       let content = fsMerger.fs.readFileSync('test-1/b.txt', 'utf-8');
       expect(content).to.be.equal('b contains text');
     });
-    it('test-1/b.txt', function () {
+    it('test-sub-1/test-sub-sub-1/sub-sub-c.txt', function () {
       let content = fsMerger.fs.readFileSync('test-sub-1/test-sub-sub-1/sub-sub-c.txt', 'utf-8');
       expect(content).to.be.equal('this is inside of test-sub-sub-1');
     });
+    it('accessing test-1/x.txt file must throw error', function () {
+      expect(() => {
+        fsMerger.fs.readFileSync('test-1/x.txt', 'utf-8')
+      }).throw(/ENOENT\: no such file or directory, open.*/);
+    });
   });
+
   describe('Reads file meta details', function() {
     let fs = new FSMerge(['fixtures/test-1', {
       root: 'fixtures/test-2',
@@ -261,6 +263,13 @@ describe('fs-reader', function () {
         fsMerger.fs._dirList;
       }).to.throw(`Operation _dirList is not allowed with FSMerger.fs. Allowed operations are readFileSync,existsSync,lstatSync,statSync,readdirSync,readdir,readFileMeta,entries,at`);
     });
+
+    it('acessing non existing path throws error', function () {
+      let fsMerger = new FSMerge(['fixtures/test-1']);
+      expect(()=>{
+        fsMerger.fs.lstatSync('reader.md', 'test')
+      }).to.throw(/ENOENT\: no such file or directory,*/);
+    });
   });
 
   describe('Returns entries for', function() {
@@ -335,6 +344,12 @@ describe('fs-reader', function () {
         });
         expect(fileList).to.be.deep.equal(walkList);
       });
+    });
+
+    it(`throws error`, function() {
+      expect(()=>{
+        fsMerger.entries('fixtures/test-5')
+      }).to.throw(/ENOENT\: no such file or directory,*/);
     });
   });
 
