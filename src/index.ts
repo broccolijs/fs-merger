@@ -1,8 +1,8 @@
 "use strict";
 
-const fs = require('fs-extra');
-const path = require('path');
-const nodefs = require('fs');
+import fs = require('fs-extra');
+import path = require('path');
+import nodefs = require('fs');
 const broccoliNodeInfo = require('broccoli-node-info');
 import {
   InputNode
@@ -28,7 +28,8 @@ const WHITELISTEDOPERATION = new Set([
   'readdir',
   'readFileMeta',
   'entries',
-  'at'
+  'at',
+  'relativePathTo'
 ]);
 
 function getRootAndPrefix(node: any): FSMerger.FSMergerObject {
@@ -43,8 +44,10 @@ function getRootAndPrefix(node: any): FSMerger.FSMergerObject {
     let { nodeType, sourceDirectory } = broccoliNodeInfo.getNodeInfo(node);
     root = nodeType == 'source' ? sourceDirectory : node.outputPath;
   }
+  root = path.normalize(root);
   return {
-    root: path.normalize(root),
+    root,
+    absRootWithSep: path.resolve(root) + path.sep,
     prefix: node.prefix || prefix,
     getDestinationPath: node.getDestinationPath || getDestinationPath
   }
@@ -70,6 +73,7 @@ function handleOperation(this: FSMerger & {[key: string]: any}, { target, proper
   let fullPath = relativePath
   let byPassAbsPathCheck = false;
   switch (propertyName) {
+    case 'relativePathTo':
     case 'at':
       byPassAbsPathCheck = true;
       break;
@@ -81,7 +85,6 @@ function handleOperation(this: FSMerger & {[key: string]: any}, { target, proper
       break;
   }
 
-  // at is a spcfical property exist in FSMerge which takes number as input do not perform path operation on it.
   if (byPassAbsPathCheck || !path.isAbsolute(relativePath)) {
     // if property is present in the FSMerge do not hijack it with fs operations
     if (this[propertyName]) {
@@ -103,6 +106,7 @@ class FSMerger {
   _dirList: FSMerger.Node[];
   MAP: { [key: string]: FSMerger.FSMergerObject } | null;
   PREFIXINDEXMAP: { [key: number]: FSMerger.FSMergerObject };
+  LIST: FSMerger.FSMergerObject[];
   _atList: FSMerger[];
   fs: FSMerger.FS
 
@@ -110,9 +114,10 @@ class FSMerger {
     this._dirList = Array.isArray(trees) ? trees : [trees];
     this.MAP = null;
     this.PREFIXINDEXMAP = {};
+    this.LIST = [];
     this._atList = [];
     let self: FSMerger & {[key: string]: any} = this;
-    this.fs = new Proxy(nodefs, {
+    this.fs = <any>new Proxy(nodefs, {
       get(target, propertyName: string) {
         if(WHITELISTEDOPERATION.has(propertyName)) {
           return handleOperation.bind(self, {target, propertyName})
@@ -144,9 +149,42 @@ class FSMerger {
     return this._atList[index]
   }
 
+  /**
+   * Given an absolute path, returns a relative path suitable for using with the
+   * other methods in this FSMerger. Does not emit paths starting with `../`;
+   * paths outside this merged FS are instead returned as `null`.
+   *
+   * Note: If this FSMerger has a path that is inside another path, the first
+   * one that contains the path will be used.
+   *
+   * Note 2: This method does not check whether the absolute path exists.
+   *
+   * @param absolutePath An absolute path to make relative.
+   * @returns null if the path is not within any filesystem tree.
+   */
+  relativePathTo(absolutePath: string): { relativePath: string, at: number } | null {
+    if (!path.isAbsolute(absolutePath)) {
+      throw new Error(`relativePathTo expects an absolute path: ${absolutePath}`);
+    }
+    if (!this.MAP) {
+      this._generateMap();
+    }
+    absolutePath = path.normalize(absolutePath);
+    for (let i = 0; i < this.LIST.length; i++) {
+      if (absolutePath.startsWith(this.LIST[i].absRootWithSep)) {
+        return {
+          relativePath: path.relative(this.LIST[i].absRootWithSep, absolutePath),
+          at: i,
+        }
+      }
+    }
+    return null;
+  }
+
   _generateMap(): void {
     this.MAP = this._dirList.reduce((map:{ [key: string]: FSMerger.FSMergerObject }, tree: FSMerger.Node, index: number) => {
       let parsedTree: FSMerger.FSMergerObject = getRootAndPrefix(tree);
+      this.LIST.push(parsedTree);
       map[parsedTree.root] = parsedTree;
       this.PREFIXINDEXMAP[index] = parsedTree;
       return map;
@@ -186,14 +224,17 @@ class FSMerger {
       this._generateMap();
     }
     let { _dirList } = this;
-    let result: string[] = [], errorCount = 0;
+    let result = new Set<string>();
+    let errorCount = 0;
     let fullDirPath = '';
     for (let i=0; i < _dirList.length; i++) {
       let { root } = this.PREFIXINDEXMAP[i];
       fullDirPath = root + '/' + dirPath;
       fullDirPath = fullDirPath.replace(/(\/|\/\/)$/, '');
       if(fs.existsSync(fullDirPath)) {
-        result.push.apply(result, fs.readdirSync(fullDirPath, options));
+        for (let entry of fs.readdirSync(fullDirPath, options)) {
+          result.add(<any>entry);
+        }
       } else {
         errorCount += 1;
       }
@@ -201,12 +242,12 @@ class FSMerger {
     if (errorCount == _dirList.length) {
       fs.readdirSync(fullDirPath);
     }
-    return [...new Set(result)];
+    return [...result];
   }
 
   readdir(dirPath: string,
     options: { encoding?: string | null; withFileTypes?: false } | string | undefined | null,
-    callback: (err: NodeJS.ErrnoException | null, files: string[] | Buffer[]) => void): void
+    callback: (err: NodeJS.ErrnoException | null, files?: string[] | Buffer[]) => void): void
   {
     if (!this.MAP) {
       this._generateMap();
@@ -216,7 +257,7 @@ class FSMerger {
       callback = options;
       options = 'utf-8';
     }
-    let result: string[] = [];
+    let result = new Set<string>();
     let { _dirList } = this;
     let fullDirPath = '';
     let existingPath = [];
@@ -229,21 +270,23 @@ class FSMerger {
       }
     }
     if (!existingPath.length) {
-      fs.readdir(fullDirPath, options, callback);
+      nodefs.readdir(fullDirPath, options, callback);
     }
     let readComplete = 0;
     for (let i = 0; i < existingPath.length; i++) {
-      fs.readdir(existingPath[i], options, (err: NodeJS.ErrnoException | null , list: string[]) => {
+      nodefs.readdir(existingPath[i], <any>options, (err: NodeJS.ErrnoException | null , list: string[]) => {
         readComplete += 1;
-        result && result.push.apply(result, list);
+        if (list) {
+          for (let r of list) {
+            result.add(r);
+          }
+        }
         if (readComplete == existingPath.length || err) {
           if (err) {
-            // @ts-ignore
-            result = undefined;
+            callback(err);
           } else {
-            result = [...new Set(result)];
+            callback(null, [...result]);
           }
-          callback(err, result);
         }
       });
     }
@@ -281,14 +324,14 @@ class FSMerger {
 
 export = FSMerger;
 namespace FSMerger {
-  export interface FS extends FSMerger {
-    existsSync: typeof existsSync,
-    lstatSync: typeof lstatSync,
-    statSync: typeof statSync,
-  }
+
+  export type FS =
+    Pick<typeof nodefs, 'readFileSync' | 'readdirSync' | 'readdir' | 'existsSync' | 'lstatSync' | 'statSync'>
+    & Pick<FSMerger, 'at' | 'readFileMeta' | 'entries' | 'relativePathTo'>;
 
   export type FSMergerObject = {
     root: string;
+    absRootWithSep: string;
     prefix: string | undefined;
     getDestinationPath: Function | undefined
   }
@@ -306,12 +349,4 @@ namespace FSMerger {
   }
   export type Node = FSMergerObject | InputNode;
 
-  interface FSMerger {
-    readFileSync: typeof readFileSync,
-    readdirSync: typeof readdirSync,
-    readdir: typeof readdir,
-    at(index:number): FSMerger,
-    readFileMeta(filePath: string, options: FileMetaOption): FileMeta,
-    entries: typeof entries
-  }
 }
