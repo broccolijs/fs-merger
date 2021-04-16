@@ -4,6 +4,9 @@
   "description": "Reads files from a real location",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist/"
+  ],
   "author": "Sparshith NR",
   "license": "MIT",
   "scripts": {
