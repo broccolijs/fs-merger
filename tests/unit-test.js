@@ -224,11 +224,20 @@ describe('fs-reader', function () {
   });
 
   describe('Verify few fs operations', function() {
-    let fsMerger = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
+    let fsMerger;
+
+    beforeEach(function() {
+      fsMerger = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
+    });
 
     it('existsSync works', function() {
       let content = fsMerger.fs.existsSync('test-1');
       expect(content).to.be.true;
+    });
+
+    it('existsSync does not bleed through to process.cwd() when the path is missing', function() {
+      let content = fsMerger.fs.existsSync('src');
+      expect(content).to.be.false;
     });
 
     it('absolute path is accepted', function() {
