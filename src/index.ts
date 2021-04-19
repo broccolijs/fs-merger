@@ -19,7 +19,10 @@ import {
 
 import { entries, Options, Entry } from 'walk-sync';
 
-const WHITELISTEDOPERATION = new Set([
+type FileSystemOperation = 'readFileSync' | 'existsSync' | 'lstatSync' | 'statSync' | 'readdirSync' | 'readdir';
+type FSMergerOperation = 'readFileMeta' | 'entries' | 'at' | 'relativePathTo';
+
+const AllowedOperations = [
   'readFileSync',
   'existsSync',
   'lstatSync',
@@ -30,7 +33,7 @@ const WHITELISTEDOPERATION = new Set([
   'entries',
   'at',
   'relativePathTo'
-]);
+];
 
 function getRootAndPrefix(node: any): FSMerger.FSMergerObject {
   let root = '';
@@ -63,43 +66,34 @@ function getValues(object: {[key:string]: any}) {
   }
 }
 
-function handleOperation(this: FSMerger & {[key: string]: any}, { target, propertyName }: {
-    target: {[key: string]: any};
-    propertyName: string;
-  }, relativePath: string, ...fsArguments: any[]) {
-  if (!this.MAP) {
-    this._generateMap();
+function handleFSOperation(
+  merger: FSMerger & {[key: string]: any},
+  target: { [key: string]: any },
+  operation: FileSystemOperation,
+  relativePath: string,
+  fsArguments: any[]
+) {
+  if (!merger.MAP) {
+    merger._generateMap();
   }
-  let fullPath = relativePath
-  let byPassAbsPathCheck = false;
-  switch (propertyName) {
-    case 'relativePathTo':
-    case 'at':
-      byPassAbsPathCheck = true;
-      break;
+  let fullPath = relativePath;
 
-    case 'entries':
-      if (!relativePath) {
-        byPassAbsPathCheck = true;
-      }
-      break;
-  }
-
-  if (byPassAbsPathCheck || !path.isAbsolute(relativePath)) {
-    // if property is present in the FSMerge do not hijack it with fs operations
-    if (this[propertyName]) {
-      return this[propertyName](relativePath, ...fsArguments);
-    }
-    let { _dirList } = this;
+  if (!path.isAbsolute(relativePath)) {
+    let { _dirList } = merger;
     for (let i=_dirList.length-1; i > -1; i--) {
-      let { root } = this.PREFIXINDEXMAP[i];
+      let { root } = merger.PREFIXINDEXMAP[i];
       let tempPath = root + '/' + relativePath;
       if(fs.existsSync(tempPath)) {
         fullPath = tempPath;
       }
     }
   }
-  return target[propertyName](fullPath, ...fsArguments);
+
+  return target[operation](fullPath, ...fsArguments);
+}
+
+function invalidFSOperation(operation: never): never {
+  throw new Error(`Operation ${operation} is not allowed with FSMerger.fs. Allowed operations are ${AllowedOperations}`);
 }
 
 class FSMerger {
@@ -116,13 +110,29 @@ class FSMerger {
     this.PREFIXINDEXMAP = {};
     this.LIST = [];
     this._atList = [];
-    let self: FSMerger & {[key: string]: any} = this;
+
+    const merger: FSMerger & {[key: string]: any} = this;
     this.fs = <any>new Proxy(nodefs, {
-      get(target, propertyName: string) {
-        if(WHITELISTEDOPERATION.has(propertyName)) {
-          return handleOperation.bind(self, {target, propertyName})
-        } else {
-          throw new Error(`Operation ${propertyName} is not allowed with FSMerger.fs. Allowed operations are ${Array.from(WHITELISTEDOPERATION).toString()}`);
+      get(target, operation: FileSystemOperation & FSMergerOperation) {
+        switch (operation) {
+          case 'existsSync':
+          case 'lstatSync':
+          case 'statSync':
+            return function(relativePath: string, ...args: any[]) {
+              return handleFSOperation(merger, target, operation, relativePath, args)
+            };
+          case 'readFileSync':
+          case 'readdirSync':
+          case 'readdir':
+          case 'readFileMeta':
+          case 'entries':
+          case 'at':
+          case 'relativePathTo':
+            return function(relativePath: string, ...args: any[]) {
+              return merger[operation](relativePath, ...args);
+            };
+          default:
+            invalidFSOperation(operation);
         }
       }
     });
