@@ -3,6 +3,7 @@
 import fs = require('fs-extra');
 import path = require('path');
 import nodefs = require('fs');
+import os = require('os');
 const broccoliNodeInfo = require('broccoli-node-info');
 import {
   InputNode
@@ -34,6 +35,16 @@ const AllowedOperations = [
   'at',
   'relativePathTo'
 ];
+
+let NO_MATCH_TMPDIR: string;
+
+function getEmptyTempDir(): string {
+  if (NO_MATCH_TMPDIR) return NO_MATCH_TMPDIR;
+
+  NO_MATCH_TMPDIR = fs.mkdtempSync(path.join(os.tmpdir(), "fs-merger-empty"));
+
+  return NO_MATCH_TMPDIR;
+}
 
 function getRootAndPrefix(node: any): FSMerger.FSMergerObject {
   let root = '';
@@ -76,16 +87,28 @@ function handleFSOperation(
   if (!merger.MAP) {
     merger._generateMap();
   }
-  let fullPath = relativePath;
 
-  if (!path.isAbsolute(relativePath)) {
+  let fullPath: string | undefined;
+
+  if (path.isAbsolute(relativePath)) {
+    fullPath = relativePath;
+  } else {
     let { _dirList } = merger;
     for (let i=_dirList.length-1; i > -1; i--) {
       let { root } = merger.PREFIXINDEXMAP[i];
-      let tempPath = root + '/' + relativePath;
+      let tempPath = path.join(root, relativePath);
+
+      fullPath = tempPath;
+
       if(fs.existsSync(tempPath)) {
-        fullPath = tempPath;
+        // break;
       }
+    }
+
+    // if there are no directories to be searched at all, fullPath will not be populated
+    // populate it with a fake directory that we **know** is empty
+    if (fullPath === undefined) {
+      fullPath = path.join(getEmptyTempDir(), relativePath);
     }
   }
 
