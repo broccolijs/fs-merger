@@ -5,7 +5,12 @@ const fixturify = require('fixturify');
 const rm = require('rimraf').sync;
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const { WatchedDir, UnwatchedDir } = require('broccoli-source');
+
+function buildTmpDir() {
+  return fs.mkdtempSync(`${os.tmpdir()}${path.sep}`);
+}
 
 describe('fs-reader', function () {
   before(function() {
@@ -68,6 +73,27 @@ describe('fs-reader', function () {
       expect(() => {
         fsMerger.fs.readFileSync('test-1/x.txt', 'utf-8')
       }).throw(/ENOENT\: no such file or directory, open.*/);
+    });
+
+    it('last node "wins" (existsSync, lstatSync, statSync)', function() {
+      let tmpdir = buildTmpDir();
+      fixturify.writeSync(tmpdir, {
+        "test-1": {
+        },
+        "test-2": {
+        },
+        "test-3": {
+          "shared.txt": "test-3/shared.txt",
+        },
+      });
+
+      let fsMerger = new FSMerge([
+        `${tmpdir}/test-1`,
+        `${tmpdir}/test-2`,
+        `${tmpdir}/test-3`,
+      ]);
+
+      expect(fsMerger.fs.existsSync("shared.txt")).to.be.true;
     });
   });
 
@@ -224,11 +250,20 @@ describe('fs-reader', function () {
   });
 
   describe('Verify few fs operations', function() {
-    let fsMerger = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
+    let fsMerger;
+
+    beforeEach(function() {
+      fsMerger = new FSMerge(['fixtures/test-1', 'fixtures/test-2', 'fixtures/test-3']);
+    });
 
     it('existsSync works', function() {
       let content = fsMerger.fs.existsSync('test-1');
       expect(content).to.be.true;
+    });
+
+    it('existsSync does not bleed through to process.cwd() when the path is missing', function() {
+      let content = fsMerger.fs.existsSync('src');
+      expect(content).to.be.false;
     });
 
     it('absolute path is accepted', function() {
