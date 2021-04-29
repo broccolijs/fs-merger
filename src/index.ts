@@ -101,7 +101,7 @@ function handleFSOperation(
       fullPath = tempPath;
 
       if(fs.existsSync(tempPath)) {
-        // break;
+        break;
       }
     }
 

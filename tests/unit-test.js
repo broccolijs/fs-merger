@@ -5,7 +5,12 @@ const fixturify = require('fixturify');
 const rm = require('rimraf').sync;
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 const { WatchedDir, UnwatchedDir } = require('broccoli-source');
+
+function buildTmpDir() {
+  return fs.mkdtempSync(`${os.tmpdir()}${path.sep}`);
+}
 
 describe('fs-reader', function () {
   before(function() {
@@ -68,6 +73,27 @@ describe('fs-reader', function () {
       expect(() => {
         fsMerger.fs.readFileSync('test-1/x.txt', 'utf-8')
       }).throw(/ENOENT\: no such file or directory, open.*/);
+    });
+
+    it('last node "wins" (existsSync, lstatSync, statSync)', function() {
+      let tmpdir = buildTmpDir();
+      fixturify.writeSync(tmpdir, {
+        "test-1": {
+        },
+        "test-2": {
+        },
+        "test-3": {
+          "shared.txt": "test-3/shared.txt",
+        },
+      });
+
+      let fsMerger = new FSMerge([
+        `${tmpdir}/test-1`,
+        `${tmpdir}/test-2`,
+        `${tmpdir}/test-3`,
+      ]);
+
+      expect(fsMerger.fs.existsSync("shared.txt")).to.be.true;
     });
   });
 
