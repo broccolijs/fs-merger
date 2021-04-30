@@ -77,7 +77,7 @@ describe('fs-reader', function () {
     it('accessing test-1/x.txt file must throw error', function () {
       expect(() => {
         fsMerger.fs.readFileSync('test-1/x.txt', 'utf-8');
-      }).throw(/ENOENT\: no such file or directory, open.*/);
+      }).throw(/ENOENT: no such file or directory, open.*/);
     });
 
     it('last node "wins" (existsSync, lstatSync, statSync)', function () {
@@ -239,7 +239,7 @@ describe('fs-reader', function () {
       it('readdirsync', function () {
         expect(() => {
           fsMerger.fs.readdirSync('sfsd');
-        }).throw(/ENOENT\: no such file or directory, scandir.*/);
+        }).throw(/ENOENT: no such file or directory, scandir.*/);
       });
 
       it('readdir', function (done) {
@@ -357,7 +357,7 @@ describe('fs-reader', function () {
       let fsMerger = new FSMerge(['fixtures/test-1']);
       expect(() => {
         fsMerger.fs.lstatSync('reader.md', 'test');
-      }).to.throw(/ENOENT\: no such file or directory,*/);
+      }).to.throw(/ENOENT: no such file or directory,*/);
     });
   });
 
@@ -520,7 +520,7 @@ describe('fs-reader', function () {
     it(`throws error`, function () {
       expect(() => {
         fsMerger.entries('fixtures/test-5');
-      }).to.throw(/ENOENT\: no such file or directory,*/);
+      }).to.throw(/ENOENT: no such file or directory,*/);
     });
   });
 

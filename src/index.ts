@@ -7,15 +7,6 @@ import os = require('os');
 const broccoliNodeInfo = require('broccoli-node-info');
 import { InputNode } from 'broccoli-node-api';
 
-import {
-  readFileSync,
-  existsSync,
-  lstatSync,
-  statSync,
-  readdirSync,
-  readdir,
-} from 'fs';
-
 import { entries, Options, Entry } from 'walk-sync';
 
 type FileSystemOperation =
