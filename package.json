@@ -46,6 +46,6 @@
     "broccoli-node-info": "^2.1.0",
     "fs-extra": "^8.0.1",
     "fs-tree-diff": "^2.0.1",
-    "walk-sync": "^2.0.2"
+    "walk-sync": "^2.2.0"
   }
 }
