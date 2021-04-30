@@ -7,7 +7,20 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  lint:
+
+    runs-on: "ubuntu-latest"
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
+      with:
+        node-version: 14
+    - run: yarn install --ignore-engines
+    - run: yarn build
+    - run: yarn lint
+
+  test:
 
     runs-on: "${{matrix.os}}-latest"
 
@@ -22,5 +35,6 @@ jobs:
       uses: actions/setup-node@v2
       with:
         node-version: ${{ matrix.node-version }}
-    - run: yarn install
-    - run: yarn test
+    - run: yarn install --ignore-engines
+    - run: yarn build
+    - run: yarn test:unit
