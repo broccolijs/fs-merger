@@ -1,3 +1,12 @@
+## 3.2.0
+- [#47](https://github.com/SparshithNR/fs-merger/pull/47) Remove unused dependencies and update remaining to latest
+- [#46](https://github.com/SparshithNR/fs-merger/pull/46) Add basic linting setup
+- [#45](https://github.com/SparshithNR/fs-merger/pull/45) Refactors to simplify the FS proxy implementation
+- [#44](https://github.com/SparshithNR/fs-merger/pull/44) Fix typo in workflow configuration
+- [#41](https://github.com/SparshithNR/fs-merger/pull/41) Migrate to GitHub Actions
+- [#40](https://github.com/SparshithNR/fs-merger/pull/40) Ensure all of dist/ is published to npm
+- [#39](https://github.com/SparshithNR/fs-merger/pull/39) Ensure yarn.lock is checked in
+
 ## 3.0.0
 - changed interface for fs proxy from `FSMergerFileOperations` to `FS`
 
