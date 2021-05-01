@@ -1,4 +1,4 @@
-## 4.0.0
+## 3.2.0
 - [#47](https://github.com/SparshithNR/fs-merger/pull/47) Remove unused dependencies and update remaining to latest
 - [#46](https://github.com/SparshithNR/fs-merger/pull/46) Add basic linting setup
 - [#45](https://github.com/SparshithNR/fs-merger/pull/45) Refactors to simplify the FS proxy implementation
