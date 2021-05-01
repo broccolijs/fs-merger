@@ -1,3 +1,6 @@
+## 3.2.1
+- [#50](https://github.com/SparshithNR/fs-merger/pull/50) Adding prepublishOnly script
+
 ## 3.2.0
 - [#47](https://github.com/SparshithNR/fs-merger/pull/47) Remove unused dependencies and update remaining to latest
 - [#46](https://github.com/SparshithNR/fs-merger/pull/46) Add basic linting setup
