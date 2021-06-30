@@ -29,7 +29,6 @@ For the consumer of the library it will look like all the folders are merged fro
 /*
 -- b.txt
 -- c.txt
--- c.txt
 -- d.txt
 -- sub-dir
     |
